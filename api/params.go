@@ -54,55 +54,19 @@ var (
 	theMQ  unsafe.Pointer
 )
 
-//func Init(router *httprouter.Router) bool {
-//	Platform = os.Getenv("CLOUD_PLATFORM")
-//	if Platform == "" {
-//		Platform = Platform_DataOS
-//	}
-//
-//	if initDB() == false {
-//		return false
-//	}
-//
-//	//initRouter(router)
-//
-//	return true
-//}
-
-//func initRouter(router *httprouter.Router) {
-//	router.POST("/saasappapi/v1/apps", TimeoutHandle(500*time.Millisecond, CreateApp))
-//	router.DELETE("/saasappapi/v1/apps/:id", TimeoutHandle(500*time.Millisecond, DeleteApp))
-//	router.PUT("/saasappapi/v1/apps/:id", TimeoutHandle(500*time.Millisecond, ModifyApp))
-//	router.GET("/saasappapi/v1/apps/:id", TimeoutHandle(500*time.Millisecond, RetrieveApp))
-//	router.GET("/saasappapi/v1/apps", TimeoutHandle(500*time.Millisecond, QueryAppList))
-//}
-
 //=============================
 //
 //=============================
 
 func MysqlAddrPort() (string, string) {
-	//switch Platform {
-	//case Platform_DataOS:
 	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_ADDR")), os.Getenv(os.Getenv("ENV_NAME_MYSQL_PORT"))
-	//case Platform_Local:
-	//	return os.Getenv("MYSQL_PORT_3306_TCP_ADDR"), os.Getenv("MYSQL_PORT_3306_TCP_PORT")
-	//}
-	//
-	//return "", ""
 }
 
 func MysqlDatabaseUsernamePassword() (string, string, string) {
-	//switch Platform {
-	//case Platform_DataOS:
+
 	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_DATABASE")),
 		os.Getenv(os.Getenv("ENV_NAME_MYSQL_USER")),
 		os.Getenv(os.Getenv("ENV_NAME_MYSQL_PASSWORD"))
-	//}
-	//
-	//return os.Getenv("MYSQL_ENV_MYSQL_DATABASE"),
-	//	os.Getenv("MYSQL_ENV_MYSQL_USER"),
-	//	os.Getenv("MYSQL_ENV_MYSQL_PASSWORD")
 }
 
 type Ds struct {
