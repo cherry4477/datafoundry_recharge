@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
-	"github.com/asiainfoLDP/datafoundry_recharge/log"
+
 	"github.com/asiainfoLDP/datafoundry_recharge/models"
 	"github.com/julienschmidt/httprouter"
 	//"io/ioutil"
@@ -14,8 +14,6 @@ import (
 	"net/http"
 	"time"
 )
-
-var logger = log.GetLogger()
 
 func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Info("Request url: POST %v.", r.URL)

@@ -13,16 +13,28 @@ import (
 )
 
 func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	logger.Info("Request url: POST %v.", r.URL)
+	logger.Info("Request url: GET %v.", r.URL)
 
 	logger.Info("Begin do recharge handler.")
+
+	r.ParseForm()
+
+	token := r.Header.Get("Authorization")
+
+	user, err := getDFUserame(token)
+	if err != nil {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
+		return
+	}
+
+	db := models.GetDB()
+	balance, err := models.GetBalanceByNamespace(db, user)
+
 	defer logger.Info("End do recharge handler.")
 
 	//todo create in database
 
-	dotestbalance()
-
-	api.JsonResult(w, http.StatusOK, nil, nil)
+	api.JsonResult(w, http.StatusOK, nil, balance)
 }
 
 func dotestbalance() {
