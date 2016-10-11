@@ -10,8 +10,8 @@ import (
 
 type Transaction struct {
 	TransactionId string    `json:"transactionId"`
-	Amount        float64   `json:"amount"`
 	Type          string    `json:"type"`
+	Amount        float64   `json:"amount"`
 	Namespace     string    `json:"namespace"`
 	User          string    `json:"user,omitempty"`
 	CreateTime    time.Time `json:"createtime,omitempty"`
@@ -24,15 +24,17 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 	defer logger.Info("Model end record recharge")
 
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
-	sqlstr := fmt.Sprintf(`insert into DF_RECHARGE (
-				RECHARGE_ID, AMOUNT, NAMESPACE, USER, CREATE_TIME, STATUS, STATUS_TIME
+	sqlstr := fmt.Sprintf(`insert into DF_TRANSACTION (
+				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, 
+				CREATE_TIME, STATUS, STATUS_TIME
 				) values (
-				?, ?, ?, ?, 
+				?, ?, ?, ?, ?, 
 				'%s', '%s', '%s')`,
 		nowstr, "A", nowstr)
 
 	_, err := db.Exec(sqlstr,
-		rechargeInfo.TransactionId, rechargeInfo.Amount, rechargeInfo.Namespace, rechargeInfo.User)
+		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
+		rechargeInfo.Namespace, rechargeInfo.User)
 
 	return err
 }

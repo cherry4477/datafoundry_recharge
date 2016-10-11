@@ -57,7 +57,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 func setTransactionType(r *http.Request, transaction *models.Transaction) {
 	r.ParseForm()
 	transType := r.Form.Get("type")
-	logger.Debug("Transcation type is in url is:%v", transType)
+	logger.Debug("Transcation type in url is:%v", transType)
 
 	if transType == "deduction" {
 		transaction.Type = "deduction"

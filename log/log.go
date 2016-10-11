@@ -3,6 +3,8 @@ package log
 import (
 	"flag"
 	"github.com/astaxie/beego/logs"
+	"os"
+	"strings"
 )
 
 const (
@@ -10,7 +12,7 @@ const (
 )
 
 var (
-	SetDebug bool
+	loglevel = os.Getenv("LOG_LEVEL")
 	logger   *logs.BeeLogger
 )
 
@@ -28,12 +30,12 @@ func init() {
 	logger.EnableFuncCallDepth(true)
 
 	//判断是不是以 DEBUG 模式启动
-	if SetDebug == false {
+	if strings.ToUpper(loglevel) == "DEBUG" {
 		logger.Info("mode is info...")
-		logger.SetLevel(logs.LevelInfo)
+		logger.SetLevel(logs.LevelDebug)
 	} else {
 		logger.Info("mode is debug...")
-		logger.SetLevel(logs.LevelDebug)
+		logger.SetLevel(logs.LevelInfo)
 	}
 }
 
