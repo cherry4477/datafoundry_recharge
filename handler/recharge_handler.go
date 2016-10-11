@@ -3,6 +3,7 @@ package handler
 import (
 	//"encoding/json"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
@@ -49,7 +50,24 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 		return
 	}
 
-	api.JsonResult(w, http.StatusOK, nil, "")
+	balance, e := updateBalance(db, recharge)
+	if e != nil {
+		logger.Error("udateBalance err: %v", e)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		//todo rollback RecordRecharge
+
+		return
+	}
+
+	api.JsonResult(w, http.StatusOK, nil, balance)
+}
+
+func updateBalance(db *sql.DB, recharge *models.Transaction) (*models.Balance, error) {
+	if recharge.Type == "deduction" {
+		return models.DeductionBalance(db, recharge.Namespace, recharge.Amount)
+	} else {
+		return models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
+	}
 }
 
 func setTransactionType(r *http.Request, transaction *models.Transaction) {

@@ -15,7 +15,7 @@ import (
 func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Info("Request url: GET %v.", r.URL)
 
-	logger.Info("Begin do recharge handler.")
+	logger.Info("Begin balance handler.")
 
 	r.ParseForm()
 
@@ -30,7 +30,7 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	db := models.GetDB()
 	balance, err := models.GetBalanceByNamespace(db, user)
 
-	defer logger.Info("End do recharge handler.")
+	defer logger.Info("End balance handler.")
 
 	//todo create in database
 

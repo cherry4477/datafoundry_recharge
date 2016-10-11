@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/log"
 	"github.com/asiainfoLDP/datafoundry_recharge/models"
 	"github.com/asiainfoLDP/datafoundry_recharge/router"
@@ -55,5 +54,5 @@ func main() {
 }
 
 func init() {
-	api.InitMQ()
+	//api.InitMQ()
 }

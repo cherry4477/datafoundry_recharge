@@ -11,7 +11,7 @@ type Balance struct {
 	Namespace string  `json:"namespace"`
 	CreateAt  string  `json:"create_at"`
 	UpdateAt  string  `json:"update_at"`
-	Balance   float32 `json:"balance"`
+	Balance   float64 `json:"balance"`
 	Status    string  `json:"state,omitempty"`
 }
 
@@ -70,7 +70,7 @@ func UpdateBalance(db *sql.DB, balance *Balance) (*Balance, error) {
 
 }
 
-func RechargeBalance(db *sql.DB, ns string, amount float32) (*Balance, error) {
+func RechargeBalance(db *sql.DB, ns string, amount float64) (*Balance, error) {
 
 	balance, err := GetBalanceByNamespace(db, ns)
 	if err != nil {
@@ -81,7 +81,7 @@ func RechargeBalance(db *sql.DB, ns string, amount float32) (*Balance, error) {
 
 }
 
-func DeductionBalance(db *sql.DB, ns string, amount float32) (*Balance, error) {
+func DeductionBalance(db *sql.DB, ns string, amount float64) (*Balance, error) {
 
 	balance, err := GetBalanceByNamespace(db, ns)
 	if err != nil {
