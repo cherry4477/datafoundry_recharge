@@ -21,17 +21,13 @@ func GetBalanceByNamespace(db *sql.DB, ns string) (*Balance, error) {
 
 	err = db.QueryRow(`SELECT 
 		balance, 
-		state, 
-		created_at, 
-		updated_at 
+		state
 		FROM DF_balance 
 		WHERE 
 		namespace=?`,
 		ns).Scan(
-		balance.Balance,
-		balance.Status,
-		balance.CreateAt,
-		balance.UpdateAt)
+		&balance.Balance,
+		&balance.Status)
 
 	if err == sql.ErrNoRows {
 		CreateNamespace(db, ns)
@@ -105,5 +101,12 @@ func checkSqlErr(err error) {
 
 	case err != nil:
 		log.Fatal(err)
+	}
+}
+
+func logRollback(tx *sql.Tx) {
+	err := tx.Rollback()
+	if err != sql.ErrTxDone && err != nil {
+		logger.Error(err.Error())
 	}
 }

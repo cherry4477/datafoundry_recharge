@@ -1,16 +1,16 @@
-CREATE TABLE IF NOT EXISTS DF_RECHARGE
+CREATE TABLE IF NOT EXISTS DF_TRANSACTION
 (
-    RECHARGE_ID       BIGINT NOT NULL AUTO_INCREMENT,
+    ID                BIGINT NOT NULL AUTO_INCREMENT,
+    TRANSACTION_ID    VARCHAR(64) NOT NULL,
+    TYPE              CHAR(10) NOT NULL,
     AMOUNT            DOUBLE(13,2) NOT NULL,
     NAMESPACE         VARCHAR(128) NOT NULL,
     USER              VARCHAR(128) NOT NULL,
     CREATE_TIME       DATETIME,
     STATUS            VARCHAR(2) NOT NULL,
     STATUS_TIME       DATETIME,
-    PRIMARY KEY (RECHARGE_ID)
+    PRIMARY KEY (ID)
 )  DEFAULT CHARSET=UTF8;
-
-
 
 
 CREATE TABLE IF NOT EXISTS `DF_balance` (
@@ -19,16 +19,19 @@ CREATE TABLE IF NOT EXISTS `DF_balance` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `balance` decimal(12,3) NOT NULL DEFAULT 0.000,
-  `state` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `state` varchar(255) COLLATE utf8_bin NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `namespace_unique` (`namespace`),
   KEY `df_balance_created_at_index` (`created_at`),
   KEY `df_balance_updated_at_index` (`updated_at`)
 )  DEFAULT CHARSET=UTF8;
 
+
 CREATE TABLE IF NOT EXISTS DF_ITEM_STAT
 (
    STAT_KEY     VARCHAR(255) NOT NULL COMMENT '3*255 = 765 < 767',
    STAT_VALUE   INT NOT NULL,
    PRIMARY KEY (STAT_KEY)
+
 )  DEFAULT CHARSET=UTF8;
+
