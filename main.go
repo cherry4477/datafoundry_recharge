@@ -8,6 +8,8 @@ import (
 	"github.com/asiainfoLDP/datafoundry_recharge/router"
 	"github.com/asiainfoLDP/datahub_commons/httputil"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -16,6 +18,7 @@ const SERVERPORT = 8090
 var (
 	logger = log.GetLogger()
 
+	loglevel = os.Getenv("LOG_LEVEL")
 	//init a router
 	initRouter = router.InitRouter()
 )
@@ -55,5 +58,9 @@ func main() {
 }
 
 func init() {
+	if strings.ToUpper(loglevel) == "DEBUG" {
+		log.SetDebug = true
+	}
+
 	api.InitMQ()
 }

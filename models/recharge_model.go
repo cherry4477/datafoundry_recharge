@@ -3,39 +3,41 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"strings"
+	//"strings"
+
 	"time"
 )
 
-type Recharge struct {
-	RechargeId int64     `json:"rechargeid"`
-	Amount     float64   `json:"amount"`
-	Namespace  string    `json:"namespace"`
-	User       string    `json:"user,omitempty"`
-	CreateTime time.Time `json:"createtime,omitempty"`
-	Status     string    `json:"status,omitempty"`
-	StatusTime time.Time `json:"statustime,omitempty"`
+type Transaction struct {
+	TransactionId string    `json:"transactionId"`
+	Amount        float64   `json:"amount"`
+	Type          string    `json:"type"`
+	Namespace     string    `json:"namespace"`
+	User          string    `json:"user,omitempty"`
+	CreateTime    time.Time `json:"createtime,omitempty"`
+	Status        string    `json:"status,omitempty"`
+	StatusTime    time.Time `json:"statustime,omitempty"`
 }
 
-/*func CreatePlan(db *sql.DB, planInfo *Plan) (string, error) {
-	logger.Info("Model begin create a plan.")
-	defer logger.Info("Model end create a plan.")
+func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
+	logger.Info("Model begin record recharge")
+	defer logger.Info("Model end record recharge")
 
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
-	sqlstr := fmt.Sprintf(`insert into DF_PLAN (
-				PLAN_ID, PLAN_NAME, PLAN_TYPE, SPECIFICATION1, SPECIFICATION2,
-				PRICE, CYCLE, REGION, CREATE_TIME, STATUS
+	sqlstr := fmt.Sprintf(`insert into DF_RECHARGE (
+				RECHARGE_ID, AMOUNT, NAMESPACE, USER, CREATE_TIME, STATUS, STATUS_TIME
 				) values (
-				?, ?, ?, ?, ?, ?, ?, ?,
-				'%s', '%s')`,
-		nowstr, "A")
+				?, ?, ?, ?, 
+				'%s', '%s', '%s')`,
+		nowstr, "A", nowstr)
 
 	_, err := db.Exec(sqlstr,
-		planInfo.Plan_id, planInfo.Plan_name, planInfo.Plan_type, planInfo.Specification1, planInfo.Specification2,
-		planInfo.Price, planInfo.Cycle, planInfo.Region)
+		rechargeInfo.TransactionId, rechargeInfo.Amount, rechargeInfo.Namespace, rechargeInfo.User)
 
-	return planInfo.Plan_id, err
+	return err
 }
+
+/*
 
 func DeletePlan(db *sql.DB, planId string) error {
 	logger.Info("Model begin delete a plan.")

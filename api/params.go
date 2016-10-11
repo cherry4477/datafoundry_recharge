@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +18,6 @@ import (
 	//"github.com/asiainfoLDP/datahub_commons/log"
 	"github.com/asiainfoLDP/datafoundry_recharge/log"
 
-	"github.com/asiainfoLDP/datafoundry_appmarket/market"
 	"github.com/asiainfoLDP/datahub_commons/mq"
 	"github.com/astaxie/beego/logs"
 	"github.com/miekg/dns"
@@ -53,101 +51,6 @@ var (
 	logger = log.GetLogger()
 	theMQ  unsafe.Pointer
 )
-
-//=============================
-//
-//=============================
-
-func MysqlAddrPort() (string, string) {
-	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_ADDR")), os.Getenv(os.Getenv("ENV_NAME_MYSQL_PORT"))
-}
-
-func MysqlDatabaseUsernamePassword() (string, string, string) {
-
-	return os.Getenv(os.Getenv("ENV_NAME_MYSQL_DATABASE")),
-		os.Getenv(os.Getenv("ENV_NAME_MYSQL_USER")),
-		os.Getenv(os.Getenv("ENV_NAME_MYSQL_PASSWORD"))
-}
-
-type Ds struct {
-	db *sql.DB
-}
-
-var (
-	ds = new(Ds)
-)
-
-func getDB() *sql.DB {
-	if market.IsServing() {
-		return ds.db
-	} else {
-		return nil
-	}
-}
-
-func initDB() bool {
-	for i := 0; i < 3; i++ {
-		connectDB()
-		if ds.db == nil {
-			select {
-			case <-time.After(time.Second * 10):
-				continue
-			}
-		} else {
-			break
-		}
-	}
-
-	if ds.db == nil {
-		return false
-	}
-
-	upgradeDB()
-
-	go updateDB()
-
-	return true
-}
-
-func updateDB() {
-	var err error
-	ticker := time.Tick(5 * time.Second)
-	for _ = range ticker {
-		if ds.db == nil {
-			connectDB()
-		} else if err = ds.db.Ping(); err != nil {
-			ds.db.Close()
-			//ds.db = nil // draw snake feet
-			connectDB()
-		}
-	}
-}
-
-func connectDB() {
-	DB_ADDR, DB_PORT := MysqlAddrPort()
-	DB_DATABASE, DB_USER, DB_PASSWORD := MysqlDatabaseUsernamePassword()
-
-	DB_URL := fmt.Sprintf(`%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=true`, DB_USER, DB_PASSWORD, DB_ADDR, DB_PORT, DB_DATABASE)
-
-	logger.Info("connect to ", DB_URL)
-	db, err := sql.Open("mysql", DB_URL) // ! here, err is always nil, db is never nil.
-	if err == nil {
-		err = db.Ping()
-	}
-
-	if err != nil {
-		logger.Error("error:", err)
-	} else {
-		ds.db = db
-	}
-}
-
-func upgradeDB() {
-	err := market.TryToUpgradeDatabase(ds.db, "datafoundry:appmarket", os.Getenv("MYSQL_CONFIG_DONT_UPGRADE_TABLES") != "yes") // don't change the name
-	if err != nil {
-		logger.Error("TryToUpgradeDatabase error:", err)
-	}
-}
 
 //======================================================
 // errors

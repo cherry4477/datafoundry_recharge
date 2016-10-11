@@ -29,7 +29,7 @@ const (
 	ErrorCodeAuthFailed        = 1305
 	ErrorCodePermissionDenied  = 1306
 	ErrorCodeInvalidParameters = 1307
-	ErrorCodeCreateApp         = 1308
+	ErrorCodeRecordRecharge    = 1308
 	ErrorCodeDeleteApp         = 1309
 	ErrorCodeModifyApp         = 1310
 	ErrorCodeGetApp            = 1311
@@ -50,7 +50,7 @@ func init() {
 	initError(ErrorCodePermissionDenied, "permission denied")
 	initError(ErrorCodeInvalidParameters, "invalid parameters")
 
-	initError(ErrorCodeCreateApp, "failed to create app")
+	initError(ErrorCodeRecordRecharge, "failed to record recharge")
 	initError(ErrorCodeDeleteApp, "failed to delete app")
 	initError(ErrorCodeModifyApp, "failed to modify app")
 	initError(ErrorCodeGetApp, "failed to retrieve app")
