@@ -64,6 +64,7 @@ func InitRouter() *httprouter.Router {
 func NewRouter(router *httprouter.Router) {
 	logger.Info("new router.")
 	router.POST("/charge/v1/recharge", api.TimeoutHandle(500*time.Millisecond, handler.DoRecharge))
+	router.GET("/charge/v1/balance", api.TimeoutHandle(500*time.Millisecond, handler.Balance))
 	//router.DELETE("/charge/v1/plans/:id", api.TimeoutHandle(500*time.Millisecond, handler.DeletePlan))
 	//router.PUT("/charge/v1/plans/:id", api.TimeoutHandle(500*time.Millisecond, handler.ModifyPlan))
 	//router.GET("/charge/v1/plans/:id", api.TimeoutHandle(500*time.Millisecond, handler.RetrievePlan))

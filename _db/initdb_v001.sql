@@ -19,9 +19,16 @@ CREATE TABLE IF NOT EXISTS `DF_balance` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `balance` decimal(12,3) NOT NULL DEFAULT 0.000,
+  `state` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `namespace_unique` (`namespace`),
   KEY `df_balance_created_at_index` (`created_at`),
   KEY `df_balance_updated_at_index` (`updated_at`)
 )  DEFAULT CHARSET=UTF8;
 
+CREATE TABLE IF NOT EXISTS DF_ITEM_STAT
+(
+   STAT_KEY     VARCHAR(255) NOT NULL COMMENT '3*255 = 765 < 767',
+   STAT_VALUE   INT NOT NULL,
+   PRIMARY KEY (STAT_KEY)
+)  DEFAULT CHARSET=UTF8;
