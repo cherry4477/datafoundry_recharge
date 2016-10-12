@@ -104,7 +104,7 @@ type QueryListResult struct {
 	Results interface{} `json:"results"`
 }
 
-func newQueryListResult(count int64, results interface{}) *QueryListResult {
+func NewQueryListResult(count int64, results interface{}) *QueryListResult {
 	return &QueryListResult{Total: count, Results: results}
 }
 
@@ -339,7 +339,7 @@ func mustRepoAndItemName(params httprouter.Params) (repo_name string, item_name 
 	return
 }
 
-func optionalOffsetAndSize(r *http.Request, defaultSize int64, minSize int64, maxSize int64) (int64, int) {
+func OptionalOffsetAndSize(r *http.Request, defaultSize int64, minSize int64, maxSize int64) (int64, int) {
 	page := optionalIntParamInQuery(r, "page", 0)
 	if page < 1 {
 		page = 1

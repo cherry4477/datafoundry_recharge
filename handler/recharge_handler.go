@@ -53,7 +53,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	balance, e := updateBalance(db, recharge)
 	if e != nil {
 		logger.Error("udateBalance err: %v", e)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeUpdateBalance, e.Error()), nil)
 		//todo rollback RecordRecharge
 
 		return
@@ -80,6 +80,36 @@ func setTransactionType(r *http.Request, transaction *models.Transaction) {
 	} else {
 		transaction.Type = "recharge"
 	}
+}
+
+func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	logger.Info("Request url: GET %v.", r.URL)
+
+	logger.Info("Begin get recharge handler.")
+	defer logger.Info("End get recharge handler.")
+
+	db := models.GetDB()
+	if db == nil {
+		logger.Warn("Get db is nil.")
+		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodeDbNotInitlized), nil)
+		return
+	}
+
+	r.ParseForm()
+
+	offset, size := api.OptionalOffsetAndSize(r, 30, 1, 100)
+
+	orderBy := models.ValidateOrderBy(r.Form.Get("orderby"))
+	sortOrder := models.ValidateSortOrder(r.Form.Get("sortorder"), models.SortOrderDesc)
+	transType := models.ValidateTransType(r.Form.Get("type"))
+
+	count, transactions, err := models.QueryTransactionList(db, transType, orderBy, sortOrder, offset, size)
+	if err != nil {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryTransactions, err.Error()), nil)
+		return
+	}
+
+	api.JsonResult(w, http.StatusOK, nil, api.NewQueryListResult(count, transactions))
 }
 
 func genUUID() string {

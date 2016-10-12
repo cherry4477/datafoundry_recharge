@@ -30,10 +30,10 @@ const (
 	ErrorCodePermissionDenied  = 1306
 	ErrorCodeInvalidParameters = 1307
 	ErrorCodeRecordRecharge    = 1308
-	ErrorCodeDeleteApp         = 1309
+	ErrorCodeUpdateBalance     = 1309
 	ErrorCodeModifyApp         = 1310
 	ErrorCodeGetApp            = 1311
-	ErrorCodeQueryApps         = 1312
+	ErrorCodeQueryTransactions = 1312
 
 	NumErrors = 1500 // about 12k memroy wasted
 )
@@ -51,10 +51,10 @@ func init() {
 	initError(ErrorCodeInvalidParameters, "invalid parameters")
 
 	initError(ErrorCodeRecordRecharge, "failed to record recharge")
-	initError(ErrorCodeDeleteApp, "failed to delete app")
+	initError(ErrorCodeUpdateBalance, "failed to update balance")
 	initError(ErrorCodeModifyApp, "failed to modify app")
 	initError(ErrorCodeGetApp, "failed to retrieve app")
-	initError(ErrorCodeQueryApps, "failed to query apps")
+	initError(ErrorCodeQueryTransactions, "failed to query transactions")
 
 	ErrorNone = GetError(ErrorCodeNone)
 	ErrorUnkown = GetError(ErrorCodeUnkown)

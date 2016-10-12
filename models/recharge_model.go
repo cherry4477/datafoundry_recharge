@@ -3,9 +3,14 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	//"strings"
+	"strings"
 
 	"time"
+)
+
+const (
+	SortOrderDesc = "desc"
+	SortOrderAsc  = "asc"
 )
 
 type Transaction struct {
@@ -37,6 +42,132 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 		rechargeInfo.Namespace, rechargeInfo.User)
 
 	return err
+}
+
+func QueryTransactionList(db *sql.DB, transType, orderBy, sortOrder string,
+	offset int64, limit int) (int64, []*Transaction, error) {
+
+	logger.Debug("QueryTransactions begin")
+
+	sqlwhere := ""
+	if transType != "" {
+		sqlwhere = fmt.Sprintf(" where type='%s' ", transType)
+	}
+	sqlorder := ""
+	if orderBy != "" {
+		sqlorder = fmt.Sprintf(" order by %s %s", orderBy, sortOrder)
+	}
+
+	count, err := queryTransactionsCount(db, sqlwhere)
+	if err != nil {
+		logger.Error(err.Error())
+		return 0, nil, err
+	}
+
+	validateOffsetAndLimit(count, &offset, &limit)
+
+	trans, err := queryTransactions(db,
+		sqlwhere, sqlorder,
+		limit, offset)
+
+	return count, trans, err
+}
+
+func ValidateSortOrder(sortOrder string, defaultOrder string) string {
+	switch strings.ToLower(sortOrder) {
+	case SortOrderAsc:
+		return SortOrderAsc
+	case SortOrderDesc:
+		return SortOrderDesc
+	}
+
+	return defaultOrder
+}
+
+func ValidateOrderBy(orderBy string) string {
+	switch orderBy {
+	case "createtime":
+		return "CREATE_TIME"
+	}
+	return ""
+}
+
+func ValidateTransType(transtype string) string {
+	switch transtype {
+	case "deduction":
+		return "deduction"
+	case "recharge":
+		return "recharge"
+	}
+
+	return ""
+}
+
+func queryTransactionsCount(db *sql.DB, sqlWhere string) (int64, error) {
+
+	count := int64(0)
+	sqlstr := fmt.Sprintf(`select COUNT(*) from DF_TRANSACTION %s`, sqlWhere)
+	logger.Debug(">>>\n"+
+		"	%s", sqlstr)
+	err := db.QueryRow(sqlstr).Scan(&count)
+
+	return count, err
+}
+
+func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
+	limit int, offset int64) ([]*Transaction, error) {
+
+	logger.Info("Model begin queryTransactions")
+	defer logger.Info("Model end queryTransactions")
+
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, 
+		AMOUNT, NAMESPACE, USER, CREATE_TIME, STATUS,  STATUS_TIME
+		FROM DF_TRANSACTION
+		%s 
+		%s
+		LIMIT %d OFFSET %d`,
+		sqlwhere,
+		sqlorder,
+		limit, offset)
+
+	logger.Info(">>> %v", sqlstr)
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		logger.Error(err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	trans := make([]*Transaction, 0, 32)
+	for rows.Next() {
+		tran := &Transaction{}
+		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace,
+			&tran.User, &tran.CreateTime, &tran.Status, &tran.StatusTime)
+		if err != nil {
+			return nil, err
+		}
+		trans = append(trans, tran)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return trans, nil
+}
+
+func validateOffsetAndLimit(count int64, offset *int64, limit *int) {
+	if *limit < 1 {
+		*limit = 1
+	}
+	if *offset >= count {
+		*offset = count - int64(*limit)
+	}
+	if *offset < 0 {
+		*offset = 0
+	}
+	if *offset+int64(*limit) > count {
+		*limit = int(count - *offset)
+	}
 }
 
 /*

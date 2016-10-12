@@ -44,7 +44,7 @@ func main() {
 	logger.Debug("address: %v", address)
 
 	logger.Info("Listening http at: %s", address)
-	err := http.ListenAndServe(address, httputil.TimeoutHandler(initRouter, 250*time.Millisecond, ""))
+	err := http.ListenAndServe(address, httputil.TimeoutHandler(initRouter, 35000*time.Millisecond, ""))
 	if err != nil {
 		logger.Error("http listen and server err: %v", err)
 		return
