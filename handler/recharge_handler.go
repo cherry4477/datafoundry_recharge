@@ -1,14 +1,14 @@
 package handler
 
 import (
-	//"encoding/json"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
 
 	"github.com/asiainfoLDP/datafoundry_recharge/models"
 	"github.com/julienschmidt/httprouter"
-	//"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -28,6 +28,17 @@ type Aipayrecharge struct {
 	Order_id  string  `json:"order_id"`
 	Amount    float64 `json:"amount"`
 	ReturnUrl string  `json:"returnUrl"`
+}
+
+type Result struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg,omitempty"`
+	Data interface{} `json:"data,omitempty"`
+}
+
+type AipayRequestInfo struct {
+	Aiurl         string `json:"aiurl"`
+	RequestPacket string `json:"requestpacket"`
 }
 
 func init() {
@@ -82,7 +93,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 }
 
 func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-
+	logger.Debug("AipayCallBack begin")
 }
 
 func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB, user string) {
@@ -114,15 +125,20 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Trans
 }
 
 func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
-	/*xmlMsg, err := GetAipayRechargeMsg(recharge)
+	xmlMsg, err := GetAipayRechargeMsg(recharge)
 	if err != nil {
 		logger.Error("GetAipayRechargeMsg  err: %v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
 		return
-	}*/
+	}
+
+	aipayRequestInfo := &AipayRequestInfo{Aiurl: "https://121.31.32.100:8443/aipay_web/aiPay.do",
+		RequestPacket: xmlMsg}
+
+	api.JsonResult(w, http.StatusOK, nil, aipayRequestInfo)
 
 	//record recharge in database
-	err := models.RecordRecharge(db, recharge)
+	err = models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
@@ -138,7 +154,9 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 		return
 	}
 
-	api.JsonResult(w, http.StatusOK, nil, balance)
+	logger.Debug(fmt.Sprintf("%v", balance.Balance))
+
+	//api.JsonResult(w, http.StatusOK, nil, balance)
 
 }
 
@@ -149,6 +167,33 @@ func GetAipayRechargeMsg(recharge *models.Transaction) (xmlMsg string, err error
 	aipayrecharge := &Aipayrecharge{Order_id: recharge.TransactionId,
 		Amount: recharge.Amount, ReturnUrl: os.Getenv("RETURN_URL")}
 	logger.Debug(aipayrecharge.ReturnUrl)
+
+	body, err := json.Marshal(aipayrecharge)
+
+	url := fmt.Sprintf("%s/bill/%s/recharge",
+		os.Getenv("AIPAY_REQUESTPACKET_URL"), recharge.Namespace)
+
+	response, data, err := common.RemoteCallWithJsonBody("PUT", url, "", "", body)
+	if err != nil {
+		logger.Error("error: ", err.Error())
+		return "", err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		logger.Error("remote (%s) status code: %d. data=%s", url, response.StatusCode, string(data))
+		return "", fmt.Errorf("remote (%s) status code: %d.", url, response.StatusCode)
+	}
+
+	result := &Result{}
+	err = json.Unmarshal(data, result)
+	if err != nil {
+		logger.Error("Parse body err: %v", err)
+		return
+	}
+
+	xmlMsg = fmt.Sprintf("%v", result.Data)
+	logger.Debug(xmlMsg)
+
 	return
 }
 
