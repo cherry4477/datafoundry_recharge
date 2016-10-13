@@ -66,12 +66,6 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 
 	setTransactionType(r, recharge)
-
-	if recharge.Type == TransTypeDEDUCTION && user != AdminUser {
-		logger.Warn("Only admin user can deduction! user:%v", user)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
-	}
-
 	recharge.User = user
 	if recharge.Namespace == "" {
 		recharge.Namespace = user
@@ -79,10 +73,26 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	recharge.TransactionId = genUUID()
 	logger.Debug("recharge: %v", recharge.TransactionId)
 
-	//xmlMsg, err := GetAipayRechargeMsg(recharge)
+	if recharge.Type == TransTypeDEDUCTION {
+		_doDeduction(w, r, recharge, db, user)
+	} else {
+		_doRecharge(w, r, recharge, db)
+	}
+
+}
+
+func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+
+}
+
+func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB, user string) {
+	if user != AdminUser {
+		logger.Warn("Only admin user can deduction! user:%v", user)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
+	}
 
 	//record recharge in database
-	err = models.RecordRecharge(db, recharge)
+	err := models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
@@ -99,11 +109,46 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 
 	api.JsonResult(w, http.StatusOK, nil, balance)
+
 }
 
-func GetAipayRechargeMsg(recharge *Transaction) (xmlMsg string, err error) {
+func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
+	/*xmlMsg, err := GetAipayRechargeMsg(recharge)
+	if err != nil {
+		logger.Error("GetAipayRechargeMsg  err: %v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		return
+	}*/
+
+	//record recharge in database
+	err := models.RecordRecharge(db, recharge)
+	if err != nil {
+		logger.Error("Record recharge err: %v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		return
+	}
+
+	balance, e := updateBalance(db, recharge)
+	if e != nil {
+		logger.Error("udateBalance err: %v", e)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeUpdateBalance, e.Error()), nil)
+		//todo rollback RecordRecharge
+
+		return
+	}
+
+	api.JsonResult(w, http.StatusOK, nil, balance)
+
+}
+
+func GetAipayRechargeMsg(recharge *models.Transaction) (xmlMsg string, err error) {
+	if recharge.Type != TransTypeRECHARGE {
+		return "", nil
+	}
 	aipayrecharge := &Aipayrecharge{Order_id: recharge.TransactionId,
 		Amount: recharge.Amount, ReturnUrl: os.Getenv("RETURN_URL")}
+	logger.Debug(aipayrecharge.ReturnUrl)
+	return
 }
 
 func updateBalance(db *sql.DB, recharge *models.Transaction) (*models.Balance, error) {
