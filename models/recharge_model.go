@@ -19,6 +19,7 @@ type Transaction struct {
 	Amount        float64   `json:"amount"`
 	Namespace     string    `json:"namespace"`
 	User          string    `json:"user,omitempty"`
+	Reason        string    `json:"reason,omitempty"`
 	CreateTime    time.Time `json:"createtime,omitempty"`
 	Status        string    `json:"status,omitempty"`
 	StatusTime    time.Time `json:"statustime,omitempty"`
@@ -30,16 +31,16 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
 	sqlstr := fmt.Sprintf(`insert into DF_TRANSACTION (
-				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, 
+				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, 
 				CREATE_TIME, STATUS, STATUS_TIME
 				) values (
-				?, ?, ?, ?, ?, 
+				?, ?, ?, ?, ?, ?,
 				'%s', '%s', '%s')`,
 		nowstr, "A", nowstr)
 
 	_, err := db.Exec(sqlstr,
 		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
-		rechargeInfo.Namespace, rechargeInfo.User)
+		rechargeInfo.Namespace, rechargeInfo.User, rechargeInfo.Reason)
 
 	return err
 }
@@ -142,7 +143,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 		sqlwhereall = fmt.Sprintf("where %s", sqlwhere)
 	}
 	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, 
-		AMOUNT, NAMESPACE, USER, CREATE_TIME, STATUS,  STATUS_TIME
+		AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS,  STATUS_TIME
 		FROM DF_TRANSACTION 
 		%s 
 		%s 
@@ -163,7 +164,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 	for rows.Next() {
 		tran := &Transaction{}
 		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace,
-			&tran.User, &tran.CreateTime, &tran.Status, &tran.StatusTime)
+			&tran.User, &tran.Reason, &tran.CreateTime, &tran.Status, &tran.StatusTime)
 		if err != nil {
 			return nil, err
 		}
