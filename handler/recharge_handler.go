@@ -2,17 +2,16 @@ package handler
 
 import (
 	//"encoding/json"
-	"crypto/rand"
 	"database/sql"
-	"fmt"
 	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
 
 	"github.com/asiainfoLDP/datafoundry_recharge/models"
 	"github.com/julienschmidt/httprouter"
 	//"io/ioutil"
-	mathrand "math/rand"
+	"math/rand"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -21,7 +20,19 @@ const (
 	TransTypeRECHARGE  = "recharge"
 
 	AdminUser = "admin"
+
+	letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
+
+type Aipayrecharge struct {
+	Order_id  string  `json:"order_id"`
+	Amount    float64 `json:"amount"`
+	ReturnUrl string  `json:"returnUrl"`
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Info("Request url: POST %v.", r.URL)
@@ -66,8 +77,9 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 		recharge.Namespace = user
 	}
 	recharge.TransactionId = genUUID()
-
 	logger.Debug("recharge: %v", recharge.TransactionId)
+
+	//xmlMsg, err := GetAipayRechargeMsg(recharge)
 
 	//record recharge in database
 	err = models.RecordRecharge(db, recharge)
@@ -87,6 +99,11 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 
 	api.JsonResult(w, http.StatusOK, nil, balance)
+}
+
+func GetAipayRechargeMsg(recharge *Transaction) (xmlMsg string, err error) {
+	aipayrecharge := &Aipayrecharge{Order_id: recharge.TransactionId,
+		Amount: recharge.Amount, ReturnUrl: os.Getenv("RETURN_URL")}
 }
 
 func updateBalance(db *sql.DB, recharge *models.Transaction) (*models.Balance, error) {
@@ -155,15 +172,9 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 }
 
 func genUUID() string {
-	mathrand.Seed(time.Now().UnixNano())
-
-	bs := make([]byte, 12)
-	_, err := rand.Read(bs)
-	if err != nil {
-		logger.Warn("genUUID error: ", err.Error())
-
-		mathrand.Read(bs)
+	b := make([]byte, 10)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
-
-	return fmt.Sprintf("%X-%X-%X", bs[0:4], bs[4:8], bs[8:])
+	return string(b)
 }
