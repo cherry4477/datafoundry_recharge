@@ -16,11 +16,28 @@ import (
 	"time"
 )
 
+const (
+	TransTypeDEDUCTION = "deduction"
+	TransTypeRECHARGE  = "recharge"
+
+	AdminUser = "admin"
+)
+
 func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Info("Request url: POST %v.", r.URL)
 
 	logger.Info("Begin do recharge handler.")
 	defer logger.Info("End do recharge handler.")
+
+	//
+
+	token := r.Header.Get("Authorization")
+
+	user, err := getDFUserame(token)
+	if err != nil {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
+		return
+	}
 
 	db := models.GetDB()
 	if db == nil {
@@ -30,7 +47,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 
 	recharge := &models.Transaction{}
-	err := common.ParseRequestJsonInto(r, recharge)
+	err = common.ParseRequestJsonInto(r, recharge)
 	if err != nil {
 		logger.Error("Parse body err: %v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeParseJsonFailed, err.Error()), nil)
@@ -39,7 +56,17 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
 	setTransactionType(r, recharge)
 
+	if recharge.Type == TransTypeDEDUCTION && user != AdminUser {
+		logger.Warn("Only admin user can deduction! user:%v", user)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
+	}
+
+	recharge.User = user
+	if recharge.Namespace == "" {
+		recharge.Namespace = user
+	}
 	recharge.TransactionId = genUUID()
+
 	logger.Debug("recharge: %v", recharge.TransactionId)
 
 	//record recharge in database
@@ -88,6 +115,23 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	logger.Info("Begin get recharge handler.")
 	defer logger.Info("End get recharge handler.")
 
+	r.ParseForm()
+
+	token := r.Header.Get("Authorization")
+
+	user, err := getDFUserame(token)
+	if err != nil {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
+		return
+	}
+
+	userparam := ""
+	if user == AdminUser {
+		userparam = r.Form.Get("username")
+	} else {
+		userparam = user
+	}
+
 	db := models.GetDB()
 	if db == nil {
 		logger.Warn("Get db is nil.")
@@ -95,15 +139,13 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 		return
 	}
 
-	r.ParseForm()
-
 	offset, size := api.OptionalOffsetAndSize(r, 30, 1, 100)
 
 	orderBy := models.ValidateOrderBy(r.Form.Get("orderby"))
 	sortOrder := models.ValidateSortOrder(r.Form.Get("sortorder"), models.SortOrderDesc)
 	transType := models.ValidateTransType(r.Form.Get("type"))
 
-	count, transactions, err := models.QueryTransactionList(db, transType, orderBy, sortOrder, offset, size)
+	count, transactions, err := models.QueryTransactionList(db, transType, userparam, orderBy, sortOrder, offset, size)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryTransactions, err.Error()), nil)
 		return
@@ -115,7 +157,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 func genUUID() string {
 	mathrand.Seed(time.Now().UnixNano())
 
-	bs := make([]byte, 16)
+	bs := make([]byte, 12)
 	_, err := rand.Read(bs)
 	if err != nil {
 		logger.Warn("genUUID error: ", err.Error())
