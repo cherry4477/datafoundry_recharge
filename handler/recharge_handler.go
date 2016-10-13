@@ -89,6 +89,7 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Trans
 	if user != AdminUser {
 		logger.Warn("Only admin user can deduction! user:%v", user)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
+		return
 	}
 
 	//record recharge in database
