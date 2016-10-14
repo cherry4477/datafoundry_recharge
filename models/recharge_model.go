@@ -36,7 +36,7 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 				) values (
 				?, ?, ?, ?, ?, ?,
 				'%s', '%s', '%s')`,
-		nowstr, "A", nowstr)
+		nowstr, "I", nowstr)
 
 	_, err := db.Exec(sqlstr,
 		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
@@ -45,15 +45,28 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 	return err
 }
 
-func QueryTransactionList(db *sql.DB, transType, namespace, orderBy, sortOrder string,
+func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sortOrder string,
 	offset int64, limit int) (int64, []*Transaction, error) {
 
 	logger.Debug("QueryTransactions begin")
 
-	sqlParams := make([]interface{}, 0, 2)
+	sqlParams := make([]interface{}, 0, 3)
 	sqlwhere := ""
+	if status != "" {
+		if sqlwhere == "" {
+			sqlwhere = "status=?"
+		} else {
+			sqlwhere = sqlwhere + " and status=?"
+		}
+		sqlParams = append(sqlParams, status)
+	}
+
 	if transType != "" {
-		sqlwhere = "type=?"
+		if sqlwhere == "" {
+			sqlwhere = "type=?"
+		} else {
+			sqlwhere = sqlwhere + " and type=?"
+		}
 		sqlParams = append(sqlParams, transType)
 	}
 
@@ -114,6 +127,20 @@ func ValidateTransType(transtype string) string {
 	}
 
 	return ""
+}
+
+func ValidateStatus(status string) string {
+	switch strings.ToUpper(status) {
+	case "O":
+		return "O"
+	case "I":
+		return "I"
+	case "ALL":
+		return ""
+	default:
+		return "O"
+	}
+
 }
 
 func queryTransactionsCount(db *sql.DB, sqlwhere string, sqlParams ...interface{}) (int64, error) {

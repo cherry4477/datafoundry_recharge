@@ -262,8 +262,9 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	orderBy := models.ValidateOrderBy(r.Form.Get("orderby"))
 	sortOrder := models.ValidateSortOrder(r.Form.Get("sortorder"), models.SortOrderDesc)
 	transType := models.ValidateTransType(r.Form.Get("type"))
+	status := models.ValidateStatus(r.Form.Get("status"))
 
-	count, transactions, err := models.QueryTransactionList(db, transType, userparam, orderBy, sortOrder, offset, size)
+	count, transactions, err := models.QueryTransactionList(db, transType, userparam, status, orderBy, sortOrder, offset, size)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryTransactions, err.Error()), nil)
 		return
