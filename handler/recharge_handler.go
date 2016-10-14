@@ -174,6 +174,20 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 		}
 	}
 
+	if err != nil {
+		logger.Error(err.Error())
+	}
+
+}
+
+func Testsql(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	db := models.GetDB()
+	if db == nil {
+		logger.Warn("Get db is nil.")
+		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodeDbNotInitlized), nil)
+		return
+	}
+	models.UpdateRechargeAndBalance(db, "LA0IIC0VVX", "O")
 }
 
 func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transaction, db *sql.DB, user string) {

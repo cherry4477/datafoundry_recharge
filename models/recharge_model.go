@@ -227,30 +227,29 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 }
 
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
-	defer logger.Debug("_getTransactionByTransId end .%s", transid)
+	defer logger.Debug("_getTransactionByTransId end.")
 
-	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME 
-				FROM DF_TRANSACTION 
-				WHERE TRANSACTION_ID='%s'`, transid)
-	row, err := db.Query(sqlstr)
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
+	logger.Debug("%s---%s", sqlstr, transid)
+	row := db.QueryRow(sqlstr, transid)
+	t := &Transaction{}
+	err := row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
+		&t.CreateTime, &t.Status, &t.StatusTime)
 	if err != nil {
 		return nil, err
 	}
-
-	t := &Transaction{}
-	row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
-		&t.CreateTime, &t.Status, &t.StatusTime)
-
+	logger.Debug("transaction:%v", t)
 	return t, nil
 }
 
 func UpdateTransaction(db *sql.DB, transid, status string) error {
-	defer logger.Debug("UpgradeDatabase end %s, %s", transid, status)
+	defer logger.Debug("UpdateTransaction end %s, %s", transid, status)
 
-	sqlstr := fmt.Sprintf(`UPDATE DF_TRANSACTION SET STATUS='%s' AND STATUS_TIME=? WHERE TRANSACTION_ID='%s'`,
-		status, transid)
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
-	_, err := db.Exec(sqlstr, nowstr)
+	sqlstr := fmt.Sprintf(`UPDATE DF_TRANSACTION SET STATUS=? , STATUS_TIME=? WHERE TRANSACTION_ID=?`)
+
+	logger.Debug("%s---%s---%s---%s", sqlstr, status, nowstr, transid)
+	_, err := db.Exec(sqlstr, status, nowstr, transid)
 	return err
 }
 

@@ -35,9 +35,9 @@ func GetBalanceByNamespace(db *sql.DB, ns string) (*Balance, error) {
 		logger.Error(err.Error())
 		return nil, err
 	}
-	logger.Debug("%#v", balance)
 
 	balance.Namespace = ns
+	logger.Debug("%#v", balance)
 
 	return balance, nil
 
@@ -55,7 +55,7 @@ func CreateNamespace(db *sql.DB, ns string) (err error) {
 
 func UpdateBalance(db *sql.DB, balance *Balance) (*Balance, error) {
 
-	sqlstr := fmt.Sprintf(`update DF_balance SET balance = '%v' where namespace = '%v'`, balance.Balance, balance.Namespace)
+	sqlstr := fmt.Sprintf(`update DF_balance SET balance = %v where namespace = '%v'`, balance.Balance, balance.Namespace)
 
 	_, err := db.Exec(sqlstr)
 
@@ -72,6 +72,9 @@ func UpdateBalance(db *sql.DB, balance *Balance) (*Balance, error) {
 
 func RechargeBalance(db *sql.DB, ns string, amount float64) (*Balance, error) {
 
+	if ns == "" {
+		return nil, errors.New("Namespace is nil")
+	}
 	balance, err := GetBalanceByNamespace(db, ns)
 	if err != nil {
 		return nil, err
