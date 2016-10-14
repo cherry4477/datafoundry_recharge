@@ -147,7 +147,7 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 	w.Header().Set("charset", "utf-8")
 
 	switch result.Code {
-	case 200:
+	case 0:
 		{
 			if notifyResult.result == 0 {
 				logger.Debug("aipay succeeded!")

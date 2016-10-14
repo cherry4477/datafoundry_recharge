@@ -217,12 +217,13 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 		return
 	}
 
-	_, err = RechargeBalance(db, trans.Namespace, trans.Amount)
+	balance, err := RechargeBalance(db, trans.Namespace, trans.Amount)
 	if err != nil {
 		logger.Error("RechargeBalance:%v", err)
-		return
+		return err
 	}
-	return
+	logger.Debug("UpdateRechargeAndBalance---RechargeBalance:%s", balance.Balance)
+	return err
 }
 
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
