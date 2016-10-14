@@ -128,6 +128,8 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 		return
 	}
 
+	logger.Debug("%s ----:%s", url, data)
+
 	notifyResult := &NotifyResult{}
 	result := &Result{Data: notifyResult}
 	err = json.Unmarshal(data, result)
