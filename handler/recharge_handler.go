@@ -149,7 +149,7 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 	switch result.Code {
 	case 0:
 		{
-			if notifyResult.result == 0 {
+			if notifyResult.Result == 0 {
 				logger.Debug("aipay succeeded!")
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(notifyResult.SignPayNotifyMsg))
