@@ -54,11 +54,11 @@ func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sor
 	sqlwhere := ""
 	if status != "" {
 		if sqlwhere == "" {
-			sqlwhere = "status=?"
+			sqlwhere = fmt.Sprintf("status in (%s)", status)
 		} else {
-			sqlwhere = sqlwhere + " and status=?"
+			sqlwhere = sqlwhere + fmt.Sprintf(" and status in (%s)", status)
 		}
-		sqlParams = append(sqlParams, status)
+		//sqlParams = append(sqlParams, status)
 	}
 
 	if transType != "" {
@@ -130,15 +130,15 @@ func ValidateTransType(transtype string) string {
 }
 
 func ValidateStatus(status string) string {
-	switch strings.ToUpper(status) {
+	switch status {
 	case "O":
-		return "O"
+		return "'O'"
 	case "I":
-		return "I"
+		return "'I'"
 	case "ALL":
 		return ""
 	default:
-		return "O"
+		return "'O', 'I', 'E'"
 	}
 
 }
@@ -205,9 +205,9 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 }
 
 func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
-	err = _updateTransaction(db, transid, status)
+	err = UpdateTransaction(db, transid, status)
 	if err != nil {
-		logger.Error("_updateTransaction:%v", err)
+		logger.Error("UpdateTransaction:%v", err)
 		return
 	}
 
@@ -243,8 +243,8 @@ func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) 
 	return t, nil
 }
 
-func _updateTransaction(db *sql.DB, transid, status string) error {
-	defer logger.Debug("_upgradeDatabase end")
+func UpdateTransaction(db *sql.DB, transid, status string) error {
+	defer logger.Debug("UpgradeDatabase end")
 
 	sqlstr := `UPDATE DF_TRANSACTION SET STATUS=? AND STATUS_TIME=? WHERE TRANSACTION_ID=?`
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")

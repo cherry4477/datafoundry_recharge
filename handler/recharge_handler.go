@@ -155,7 +155,7 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 				err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "O")
 
 			} else {
-				logger.Debug("aipay failed! %d, error:%s", notifyResult.result, result.Msg)
+				logger.Debug("aipay failed! notifyResult.result:%d, error:%s", notifyResult.result, result.Msg)
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(notifyResult.SignPayNotifyMsg))
 				//update record recharge in database
@@ -164,18 +164,17 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 		}
 	case 1001:
 		{
-			logger.Debug("aipay failed! %d, error:%s", notifyResult.result, result.Msg)
-			logger.Debug("aipay succeeded!")
+			logger.Debug("aipay failed! code:%d, error:%s", result.Code, result.Msg)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(notifyResult.SignPayNotifyMsg))
 			//update record recharge in database
-			err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "X")
+			err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "E")
 		}
 	}
 
 }
 
-func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB, user string) {
+func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transaction, db *sql.DB, user string) {
 	if user != AdminUser {
 		logger.Warn("Only admin user can deduction! user:%v", user)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
@@ -183,20 +182,22 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Trans
 	}
 
 	//record recharge in database
-	recharge.Status = "O"
-	err := models.RecordRecharge(db, recharge)
+	trans.Status = "O"
+	err := models.RecordRecharge(db, trans)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
 		return
 	}
 
-	balance, e := updateBalance(db, recharge)
+	balance, e := updateBalance(db, trans)
 	if e != nil {
 		logger.Error("udateBalance err: %v", e)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeUpdateBalance, e.Error()), nil)
 		//todo rollback RecordRecharge
-
+		if err := models.UpdateTransaction(db, trans.TransactionId, "F"); err != nil {
+			logger.Error("UpdateTransaction err: %v", err)
+		}
 		return
 	}
 
@@ -279,7 +280,7 @@ func updateBalance(db *sql.DB, recharge *models.Transaction) (*models.Balance, e
 	if recharge.Type == "deduction" {
 		return models.DeductionBalance(db, recharge.Namespace, recharge.Amount)
 	} else {
-		return models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
+		return nil, nil //models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
 	}
 }
 
