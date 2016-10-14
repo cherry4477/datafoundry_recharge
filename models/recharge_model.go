@@ -222,17 +222,17 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 		logger.Error("RechargeBalance:%v", err)
 		return err
 	}
-	logger.Debug("UpdateRechargeAndBalance---RechargeBalance:%s", balance.Balance)
+	logger.Debug("UpdateRechargeAndBalance---RechargeBalance:%v", balance.Balance)
 	return err
 }
 
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
 	defer logger.Debug("_getTransactionByTransId end .%s", transid)
 
-	sqlstr := `SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME 
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME 
 				FROM DF_TRANSACTION 
-				WHERE TRANSACTION_ID=?`
-	row, err := db.Query(sqlstr, transid)
+				WHERE TRANSACTION_ID='%s'`, transid)
+	row, err := db.Query(sqlstr)
 	if err != nil {
 		return nil, err
 	}
@@ -247,9 +247,10 @@ func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) 
 func UpdateTransaction(db *sql.DB, transid, status string) error {
 	defer logger.Debug("UpgradeDatabase end %s, %s", transid, status)
 
-	sqlstr := `UPDATE DF_TRANSACTION SET STATUS=? AND STATUS_TIME=? WHERE TRANSACTION_ID=?`
+	sqlstr := fmt.Sprintf(`UPDATE DF_TRANSACTION SET STATUS='%s' AND STATUS_TIME=? WHERE TRANSACTION_ID='%s'`,
+		status, transid)
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
-	_, err := db.Exec(sqlstr, status, nowstr, transid)
+	_, err := db.Exec(sqlstr, nowstr)
 	return err
 }
 
