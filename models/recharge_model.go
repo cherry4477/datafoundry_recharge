@@ -35,12 +35,12 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 				CREATE_TIME, STATUS, STATUS_TIME
 				) values (
 				?, ?, ?, ?, ?, ?,
-				'%s', '%s', '%s')`,
-		nowstr, "I", nowstr)
+				'%s', ?, '%s')`,
+		nowstr, nowstr)
 
 	_, err := db.Exec(sqlstr,
 		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
-		rechargeInfo.Namespace, rechargeInfo.User, rechargeInfo.Reason)
+		rechargeInfo.Namespace, rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Status)
 
 	return err
 }
@@ -202,6 +202,54 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 	}
 
 	return trans, nil
+}
+
+func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
+	err = _updateTransaction(db, transid, status)
+	if err != nil {
+		logger.Error("_updateTransaction:%v", err)
+		return
+	}
+
+	trans, err := _getTransactionByTransId(db, transid)
+	if err != nil {
+		logger.Error("_getTransactionById:%v")
+		return
+	}
+
+	_, err = RechargeBalance(db, trans.Namespace, trans.Amount)
+	if err != nil {
+		logger.Error("RechargeBalance:%v", err)
+		return
+	}
+	return
+}
+
+func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
+	defer logger.Debug("_getTransactionByTransId end")
+
+	sqlstr := `SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME 
+				FROM DF_TRANSACTION 
+				WHERE TRANSACTION_ID=?`
+	row, err := db.Query(sqlstr, transid)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &Transaction{}
+	row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
+		&t.CreateTime, &t.Status, &t.StatusTime)
+
+	return t, nil
+}
+
+func _updateTransaction(db *sql.DB, transid, status string) error {
+	defer logger.Debug("_upgradeDatabase end")
+
+	sqlstr := `UPDATE DF_TRANSACTION SET STATUS=? AND STATUS_TIME=? WHERE TRANSACTION_ID=?`
+	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
+	_, err := db.Exec(sqlstr, status, nowstr, transid)
+	return err
 }
 
 func validateOffsetAndLimit(count int64, offset *int64, limit *int) {

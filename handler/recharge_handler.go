@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/asiainfoLDP/datafoundry_recharge/api"
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
-
 	"github.com/asiainfoLDP/datafoundry_recharge/models"
 	"github.com/julienschmidt/httprouter"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -45,6 +45,12 @@ type AipayRequestInfo struct {
 type PayloadInfo struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type NotifyResult struct {
+	SignPayNotifyMsg string `json:"signPayNotifyMsg"`
+	order_id         string `json:"order_id"`
+	result           int    `json:"result"`
 }
 
 func init() {
@@ -101,6 +107,72 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Debug("AipayCallBack begin")
 
+	rbody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		logger.Error(err.Error())
+		return
+	}
+	logger.Debug(string(rbody))
+
+	url := fmt.Sprintf("%s/payconfirm/message",
+		os.Getenv("JAVA_AIPAY_REQUESTPACKET_URL"))
+
+	response, data, err := common.RemoteCallWithJsonBody("POST", url, "", "", rbody)
+	if err != nil {
+		logger.Error("error: ", err.Error())
+		return
+	}
+
+	if response.StatusCode != http.StatusOK {
+		logger.Error("remote (%s) status code: %d. data=%s", url, response.StatusCode, string(data))
+		return
+	}
+
+	notifyResult := &NotifyResult{}
+	result := &Result{Data: notifyResult}
+	err = json.Unmarshal(data, result)
+	if err != nil {
+		logger.Error("Parse body err: %v", err)
+		return
+	}
+
+	db := models.GetDB()
+	if db == nil {
+		logger.Warn("Get db is nil.")
+		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodeDbNotInitlized), nil)
+		return
+	}
+	w.Header().Set("charset", "utf-8")
+
+	switch result.Code {
+	case 200:
+		{
+			if notifyResult.result == 0 {
+				logger.Debug("aipay succeeded!")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(notifyResult.SignPayNotifyMsg))
+				//update record recharge in database
+				err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "O")
+
+			} else {
+				logger.Debug("aipay failed! %d, error:%s", notifyResult.result, result.Msg)
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(notifyResult.SignPayNotifyMsg))
+				//update record recharge in database
+				err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "E")
+			}
+		}
+	case 1001:
+		{
+			logger.Debug("aipay failed! %d, error:%s", notifyResult.result, result.Msg)
+			logger.Debug("aipay succeeded!")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(notifyResult.SignPayNotifyMsg))
+			//update record recharge in database
+			err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "X")
+		}
+	}
+
 }
 
 func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB, user string) {
@@ -111,6 +183,7 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Trans
 	}
 
 	//record recharge in database
+	recharge.Status = "O"
 	err := models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
@@ -145,9 +218,8 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 		Payloads: []PayloadInfo{{Name: "requestPacket", Value: xmlMsg}},
 	}
 
-	api.JsonResult(w, http.StatusOK, nil, aipayRequestInfo)
-
 	//record recharge in database
+	recharge.Status = "I"
 	err = models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
@@ -155,16 +227,7 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 		return
 	}
 
-	balance, e := updateBalance(db, recharge)
-	if e != nil {
-		logger.Error("udateBalance err: %v", e)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeUpdateBalance, e.Error()), nil)
-		//todo rollback RecordRecharge
-
-		return
-	}
-
-	logger.Debug(fmt.Sprintf("%v", balance.Balance))
+	api.JsonResult(w, http.StatusOK, nil, aipayRequestInfo)
 
 	//api.JsonResult(w, http.StatusOK, nil, balance)
 
