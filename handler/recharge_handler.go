@@ -180,8 +180,13 @@ func GetAipayRechargeMsg(recharge *models.Transaction) (xmlMsg string, err error
 
 	body, err := json.Marshal(aipayrecharge)
 
+	payerPARTNERACCTID := os.Getenv("test100")
+	if payerPARTNERACCTID == "" {
+		payerPARTNERACCTID = recharge.Namespace
+	}
+
 	url := fmt.Sprintf("%s/bill/%s/recharge",
-		os.Getenv("JAVA_AIPAY_REQUESTPACKET_URL"), recharge.Namespace)
+		os.Getenv("JAVA_AIPAY_REQUESTPACKET_URL"), payerPARTNERACCTID)
 
 	response, data, err := common.RemoteCallWithJsonBody("PUT", url, "", "", body)
 	if err != nil {
