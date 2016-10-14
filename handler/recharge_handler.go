@@ -37,9 +37,9 @@ type Result struct {
 }
 
 type AipayRequestInfo struct {
-	Aiurl   string      `json:"aiurl"`
-	Method  string      `json:"method"`
-	Payload PayloadInfo `json:"payload"`
+	Aiurl    string        `json:"aiurl"`
+	Method   string        `json:"method"`
+	Payloads []PayloadInfo `json:"payloads"`
 }
 
 type PayloadInfo struct {
@@ -100,6 +100,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
 func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	logger.Debug("AipayCallBack begin")
+
 }
 
 func _doDeduction(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB, user string) {
@@ -139,9 +140,9 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 	}
 
 	aipayRequestInfo := &AipayRequestInfo{
-		Aiurl:   os.Getenv("AIPAY_WEB_URL"),
-		Method:  "POST",
-		Payload: PayloadInfo{Name: "requestPacket", Value: xmlMsg},
+		Aiurl:    os.Getenv("AIPAY_WEB_URL"),
+		Method:   "POST",
+		Payloads: []PayloadInfo{{Name: "requestPacket", Value: xmlMsg}},
 	}
 
 	api.JsonResult(w, http.StatusOK, nil, aipayRequestInfo)
