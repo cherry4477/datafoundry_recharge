@@ -37,8 +37,14 @@ type Result struct {
 }
 
 type AipayRequestInfo struct {
-	Aiurl         string `json:"aiurl"`
-	RequestPacket string `json:"requestpacket"`
+	Aiurl   string      `json:"aiurl"`
+	Method  string      `json:"method"`
+	Payload PayloadInfo `json:"payload"`
+}
+
+type PayloadInfo struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 func init() {
@@ -132,8 +138,11 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 		return
 	}
 
-	aipayRequestInfo := &AipayRequestInfo{Aiurl: "https://121.31.32.100:8443/aipay_web/aiPay.do",
-		RequestPacket: xmlMsg}
+	aipayRequestInfo := &AipayRequestInfo{
+		Aiurl:   os.Getenv("AIPAY_WEB_URL"),
+		Method:  "POST",
+		Payload: PayloadInfo{Name: "requestPacket", Value: xmlMsg},
+	}
 
 	api.JsonResult(w, http.StatusOK, nil, aipayRequestInfo)
 
@@ -171,7 +180,7 @@ func GetAipayRechargeMsg(recharge *models.Transaction) (xmlMsg string, err error
 	body, err := json.Marshal(aipayrecharge)
 
 	url := fmt.Sprintf("%s/bill/%s/recharge",
-		os.Getenv("AIPAY_REQUESTPACKET_URL"), recharge.Namespace)
+		os.Getenv("JAVA_AIPAY_REQUESTPACKET_URL"), recharge.Namespace)
 
 	response, data, err := common.RemoteCallWithJsonBody("PUT", url, "", "", body)
 	if err != nil {
