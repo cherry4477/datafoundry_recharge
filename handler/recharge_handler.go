@@ -49,8 +49,8 @@ type PayloadInfo struct {
 
 type NotifyResult struct {
 	SignPayNotifyMsg string `json:"signPayNotifyMsg"`
-	order_id         string `json:"order_id"`
-	result           int    `json:"result"`
+	Order_id         string `json:"order_id"`
+	Result           int    `json:"result"`
 }
 
 func init() {
@@ -154,14 +154,14 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(notifyResult.SignPayNotifyMsg))
 				//update record recharge in database
-				err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "O")
+				err = models.UpdateRechargeAndBalance(db, notifyResult.Order_id, "O")
 
 			} else {
-				logger.Debug("aipay failed! notifyResult.result:%d, error:%s", notifyResult.result, result.Msg)
+				logger.Debug("aipay failed! notifyResult.result:%d, error:%s", notifyResult.Result, result.Msg)
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte(notifyResult.SignPayNotifyMsg))
 				//update record recharge in database
-				err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "E")
+				err = models.UpdateRechargeAndBalance(db, notifyResult.Order_id, "E")
 			}
 		}
 	case 1001:
@@ -170,7 +170,7 @@ func AipayCallBack(w http.ResponseWriter, r *http.Request, params httprouter.Par
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(notifyResult.SignPayNotifyMsg))
 			//update record recharge in database
-			err = models.UpdateRechargeAndBalance(db, notifyResult.order_id, "E")
+			err = models.UpdateRechargeAndBalance(db, notifyResult.Order_id, "E")
 		}
 	}
 

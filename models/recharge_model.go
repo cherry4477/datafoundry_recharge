@@ -227,7 +227,7 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 }
 
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
-	defer logger.Debug("_getTransactionByTransId end")
+	defer logger.Debug("_getTransactionByTransId end .%s", transid)
 
 	sqlstr := `SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME 
 				FROM DF_TRANSACTION 
@@ -245,7 +245,7 @@ func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) 
 }
 
 func UpdateTransaction(db *sql.DB, transid, status string) error {
-	defer logger.Debug("UpgradeDatabase end")
+	defer logger.Debug("UpgradeDatabase end %s, %s", transid, status)
 
 	sqlstr := `UPDATE DF_TRANSACTION SET STATUS=? AND STATUS_TIME=? WHERE TRANSACTION_ID=?`
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
