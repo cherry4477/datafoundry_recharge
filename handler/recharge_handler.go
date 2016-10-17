@@ -367,23 +367,6 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	api.JsonResult(w, http.StatusOK, nil, api.NewQueryListResult(count, transactions))
 }
 
-func checkNameSpacePermission(ns, token string) error {
-	url := fmt.Sprintf("%s/oapi/v1/projects/%s", DataFoundryHost, ns)
-
-	response, data, err := common.RemoteCall("GET", url, token, "")
-	if err != nil {
-		logger.Error("get projects error: ", err.Error())
-		return err
-	}
-
-	if response.StatusCode != http.StatusOK {
-		logger.Error("remote (%s) status code: %d. data=%s", url, response.StatusCode, string(data))
-		return fmt.Errorf("remote (%s) status code: %d.", url, response.StatusCode)
-	}
-
-	return err
-}
-
 func genUUID() string {
 	b := make([]byte, 10)
 	for i := range b {

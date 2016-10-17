@@ -27,8 +27,24 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 		return
 	}
 
+	ns := r.Form.Get("namespace")
+	if user == AdminUser {
+
+	} else {
+		if ns == "" {
+			ns = user
+		} else {
+			err = checkNameSpacePermission(ns, token)
+			if err != nil {
+				logger.Warn("%s cannot access the namespace:%s.", user, ns)
+				api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)
+				return
+			}
+		}
+	}
+
 	db := models.GetDB()
-	balance, err := models.GetBalanceByNamespace(db, user)
+	balance, err := models.GetBalanceByNamespace(db, ns)
 
 	defer logger.Info("End balance handler.")
 

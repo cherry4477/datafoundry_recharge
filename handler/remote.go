@@ -65,3 +65,20 @@ func getDFUserame(token string) (string, error) {
 	}
 	return dfUser(user), nil
 }
+
+func checkNameSpacePermission(ns, token string) error {
+	url := fmt.Sprintf("%s/oapi/v1/projects/%s", DataFoundryHost, ns)
+
+	response, data, err := common.RemoteCall("GET", url, token, "")
+	if err != nil {
+		logger.Error("get projects error: ", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		logger.Error("remote (%s) status code: %d. data=%s", url, response.StatusCode, string(data))
+		return fmt.Errorf("remote (%s) status code: %d.", url, response.StatusCode)
+	}
+
+	return err
+}
