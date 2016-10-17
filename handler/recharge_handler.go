@@ -328,11 +328,20 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 		return
 	}
 
-	userparam := ""
+	ns := r.Form.Get("namespace")
 	if user == AdminUser {
-		userparam = r.Form.Get("username")
+
 	} else {
-		userparam = user
+		if ns == "" {
+			ns = user
+		} else {
+			err = checkNameSpacePermission(ns, token)
+			if err != nil {
+				logger.Warn("%s cannot access the namespace:%s.", user, ns)
+				api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)
+				return
+			}
+		}
 	}
 
 	db := models.GetDB()
@@ -349,13 +358,30 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	transType := models.ValidateTransType(r.Form.Get("type"))
 	status := models.ValidateStatus(r.Form.Get("status"))
 
-	count, transactions, err := models.QueryTransactionList(db, transType, userparam, status, orderBy, sortOrder, offset, size)
+	count, transactions, err := models.QueryTransactionList(db, transType, ns, status, orderBy, sortOrder, offset, size)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryTransactions, err.Error()), nil)
 		return
 	}
 
 	api.JsonResult(w, http.StatusOK, nil, api.NewQueryListResult(count, transactions))
+}
+
+func checkNameSpacePermission(ns, token string) error {
+	url := fmt.Sprintf("%s/oapi/v1/projects/%s", DataFoundryHost, ns)
+
+	response, data, err := common.RemoteCall("GET", url, token, "")
+	if err != nil {
+		logger.Error("get projects error: ", err.Error())
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		logger.Error("remote (%s) status code: %d. data=%s", url, response.StatusCode, string(data))
+		return fmt.Errorf("remote (%s) status code: %d.", url, response.StatusCode)
+	}
+
+	return err
 }
 
 func genUUID() string {
