@@ -222,9 +222,10 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transact
 }
 
 func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
-	if (recharge.Amount*100 - float64(int(recharge.Amount*100))) > 0{
-		logger.Error("Record recharge err: more than two decimal")
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, "more than two decimal"), nil)
+	if (recharge.Amount*100 - float64(int(recharge.Amount*100))) > 0 {
+		logger.Error("Recharge amount has more than two decimals. %v", recharge.Amount)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge,
+			"recharge amount has more than two decimals"), nil)
 		return
 	}
 	xmlMsg, err := GetAipayRechargeMsg(recharge)
@@ -275,7 +276,7 @@ func GetAipayRechargeMsg(recharge *models.Transaction) (xmlMsg string, err error
 
 	response, data, err := common.RemoteCallWithJsonBody("PUT", url, "", "", body)
 	if err != nil {
-		logger.Error("error: ", err.Error())
+		logger.Error("error:%s", err.Error())
 		return "", err
 	}
 
