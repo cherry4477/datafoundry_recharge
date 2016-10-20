@@ -357,7 +357,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 		return
 	}
 
-	offset, size := api.OptionalOffsetAndSize(r, 30, 1, 100)
+	offset, size := api.OptionalOffsetAndSize(r, 30, 1, 1000)
 
 	orderBy := models.ValidateOrderBy(r.Form.Get("orderby"))
 	sortOrder := models.ValidateSortOrder(r.Form.Get("sortorder"), models.SortOrderDesc)
