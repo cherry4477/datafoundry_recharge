@@ -374,6 +374,65 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	api.JsonResult(w, http.StatusOK, nil, api.NewQueryListResult(count, transactions))
 }
 
+func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	logger.Info("Begin do recharge handler. Request url: POST %v.", r.URL)
+	defer logger.Info("End do recharge handler.")
+
+	token := r.Header.Get("Authorization")
+
+	user, err := getDFUserame(token)
+	if err != nil {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
+		return
+	}
+	if user != AdminUser {
+		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)
+		return
+	}
+
+	db := models.GetDB()
+	if db == nil {
+		logger.Warn("Get db is nil.")
+		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodeDbNotInitlized), nil)
+		return
+	}
+
+	recharge := &models.Transaction{}
+	err = common.ParseRequestJsonInto(r, recharge)
+	if err != nil {
+		logger.Error("Parse body err: %v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeParseJsonFailed, err.Error()), nil)
+		return
+	}
+
+	recharge.Type = "coupon"
+	recharge.TransactionId = genUUID()
+	logger.Debug("coupon recharge: %v", recharge.TransactionId)
+
+	_doCouponRecharge(w, r, recharge, db)
+}
+
+func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
+
+	//record recharge in database
+	recharge.Status = "O"
+	err := models.RecordRecharge(db, recharge)
+	if err != nil {
+		logger.Error("Record recharge err: %v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		return
+	}
+
+	balance, err := models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
+	if err != nil {
+		logger.Error("RechargeBalance:%v", err)
+		return
+	}
+	logger.Debug("_doCouponRecharge---RechargeBalance:%v", balance.Balance)
+
+	api.JsonResult(w, http.StatusOK, nil, balance)
+}
+
 func genUUID() string {
 	b := make([]byte, 10)
 	for i := range b {

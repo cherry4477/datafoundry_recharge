@@ -67,6 +67,9 @@ func NewRouter(router *httprouter.Router) {
 	router.POST("/charge/v1/aipaycallback", api.TimeoutHandle(35000*time.Millisecond, handler.AipayCallBack))
 	router.GET("/charge/v1/recharge", api.TimeoutHandle(35000*time.Millisecond, handler.GetRechargeList))
 	router.GET("/charge/v1/balance", api.TimeoutHandle(35000*time.Millisecond, handler.Balance))
+
+	router.POST("/charge/v1/couponrecharge", api.TimeoutHandle(35000*time.Millisecond, handler.CouponRecharge))
+
 	//router.DELETE("/charge/v1/plans/:id", api.TimeoutHandle(500*time.Millisecond, handler.DeletePlan))
 	//router.PUT("/charge/v1/test", api.TimeoutHandle(500*time.Millisecond, handler.Testsql))
 	//router.GET("/charge/v1/plans/:id", api.TimeoutHandle(500*time.Millisecond, handler.RetrievePlan))
