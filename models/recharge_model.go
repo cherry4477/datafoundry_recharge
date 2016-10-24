@@ -20,6 +20,7 @@ type Transaction struct {
 	Namespace     string    `json:"namespace"`
 	User          string    `json:"user,omitempty"`
 	Reason        string    `json:"reason,omitempty"`
+	Region        string    `json:"region,omitempty"`
 	CreateTime    time.Time `json:"createtime,omitempty"`
 	Status        string    `json:"status,omitempty"`
 	StatusTime    time.Time `json:"statustime,omitempty"`
@@ -32,20 +33,20 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
 	sqlstr := fmt.Sprintf(`insert into DF_TRANSACTION (
 				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, 
-				CREATE_TIME, STATUS, STATUS_TIME
+				REGION, CREATE_TIME, STATUS, STATUS_TIME
 				) values (
-				?, ?, ?, ?, ?, ?,
-				'%s', ?, '%s')`,
+				?, ?, ?, ?, ?, ?, 
+				?, '%s', ?, '%s')`,
 		nowstr, nowstr)
 
 	_, err := db.Exec(sqlstr,
-		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
-		rechargeInfo.Namespace, rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Status)
+		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount, rechargeInfo.Namespace,
+		rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Region, rechargeInfo.Status)
 
 	return err
 }
 
-func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sortOrder string,
+func QueryTransactionList(db *sql.DB, transType, namespace, status, region, orderBy, sortOrder string,
 	offset int64, limit int) (int64, []*Transaction, error) {
 
 	logger.Debug("QueryTransactions begin")
@@ -77,6 +78,15 @@ func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sor
 			sqlwhere = sqlwhere + " and namespace=?"
 		}
 		sqlParams = append(sqlParams, namespace)
+	}
+
+	if region != "" {
+		if sqlwhere == "" {
+			sqlwhere = "region=?"
+		} else {
+			sqlwhere = sqlwhere + " and region=?"
+		}
+		sqlParams = append(sqlParams, region)
 	}
 
 	sqlorder := ""
@@ -170,7 +180,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 		sqlwhereall = fmt.Sprintf("where %s", sqlwhere)
 	}
 	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, 
-		AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS,  STATUS_TIME
+		AMOUNT, NAMESPACE, USER, REASON, REGION, CREATE_TIME, STATUS,  STATUS_TIME
 		FROM DF_TRANSACTION 
 		%s 
 		%s 
@@ -191,7 +201,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 	for rows.Next() {
 		tran := &Transaction{}
 		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace,
-			&tran.User, &tran.Reason, &tran.CreateTime, &tran.Status, &tran.StatusTime)
+			&tran.User, &tran.Reason, &tran.Region, &tran.CreateTime, &tran.Status, &tran.StatusTime)
 		if err != nil {
 			return nil, err
 		}
@@ -229,12 +239,12 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
 	defer logger.Debug("_getTransactionByTransId end.")
 
-	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, REGION, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
 	logger.Debug("%s---%s", sqlstr, transid)
 	row := db.QueryRow(sqlstr, transid)
 	t := &Transaction{}
 	err := row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
-		&t.CreateTime, &t.Status, &t.StatusTime)
+		&t.Region, &t.CreateTime, &t.Status, &t.StatusTime)
 	if err != nil {
 		return nil, err
 	}
