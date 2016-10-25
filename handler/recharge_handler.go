@@ -230,13 +230,29 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transact
 
 }
 
+func checkAmount(amount float64) uint {
+	if (amount*100 - float64(int(amount*100))) > 0 {
+		logger.Error("%v, %v", api.ErrorCodeAmountsInvalid, amount)
+		return api.ErrorCodeAmountsInvalid
+	}
+	if amount < 0 {
+		logger.Error("%v, %v", api.ErrorCodeAmountsNegative, amount)
+		return api.ErrorCodeAmountsNegative
+	}
+	if amount > 99999999.99 {
+		logger.Error("%v, %v", api.ErrorCodeAmountsTooBig, amount)
+		return api.ErrorCodeAmountsTooBig
+	}
+
+	return api.ErrorCodeNone
+}
+
 func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
-	if (recharge.Amount*100 - float64(int(recharge.Amount*100))) > 0 {
-		logger.Error("Recharge amount has more than two decimals. %v", recharge.Amount)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAmountsInvalid,
-			"recharge amount has more than two decimals"), nil)
+	if errcode := checkAmount(recharge.Amount); errcode > 0 {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError(errcode), nil)
 		return
 	}
+
 	xmlMsg, err := GetAipayRechargeMsg(recharge)
 	if err != nil {
 		logger.Error("GetAipayRechargeMsg  err: %v", err)
