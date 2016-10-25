@@ -440,6 +440,11 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 
 func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
 
+	if errcode := checkAmount(recharge.Amount); errcode > 0 {
+		api.JsonResult(w, http.StatusBadRequest, api.GetError(errcode), nil)
+		return
+	}
+
 	//record recharge in database
 	recharge.Status = "O"
 	recharge.Paymode = "coupon"
