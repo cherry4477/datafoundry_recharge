@@ -21,6 +21,7 @@ type Transaction struct {
 	User          string    `json:"user,omitempty"`
 	Reason        string    `json:"reason,omitempty"`
 	Region        string    `json:"region,omitempty"`
+	Paymode       string    `json:"paymode,omitempty"`
 	CreateTime    time.Time `json:"createtime,omitempty"`
 	Status        string    `json:"status,omitempty"`
 	StatusTime    time.Time `json:"statustime,omitempty"`
@@ -33,15 +34,15 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
 	sqlstr := fmt.Sprintf(`insert into DF_TRANSACTION (
 				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, 
-				REGION, CREATE_TIME, STATUS, STATUS_TIME
+				REGION, PAYMODE, CREATE_TIME, STATUS, STATUS_TIME
 				) values (
 				?, ?, ?, ?, ?, ?, 
-				?, '%s', ?, '%s')`,
+				?, ?, '%s', ?, '%s')`,
 		nowstr, nowstr)
 
 	_, err := db.Exec(sqlstr,
 		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount, rechargeInfo.Namespace,
-		rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Region, rechargeInfo.Status)
+		rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Region, rechargeInfo.Paymode, rechargeInfo.Status)
 
 	return err
 }
@@ -180,7 +181,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 		sqlwhereall = fmt.Sprintf("where %s", sqlwhere)
 	}
 	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, 
-		AMOUNT, NAMESPACE, USER, REASON, REGION, CREATE_TIME, STATUS,  STATUS_TIME
+		AMOUNT, NAMESPACE, USER, REASON, REGION, PAYMODE, CREATE_TIME, STATUS,  STATUS_TIME
 		FROM DF_TRANSACTION 
 		%s 
 		%s 
@@ -200,8 +201,8 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 	trans := make([]*Transaction, 0, 32)
 	for rows.Next() {
 		tran := &Transaction{}
-		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace,
-			&tran.User, &tran.Reason, &tran.Region, &tran.CreateTime, &tran.Status, &tran.StatusTime)
+		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace, &tran.User,
+			&tran.Reason, &tran.Region, &tran.Paymode, &tran.CreateTime, &tran.Status, &tran.StatusTime)
 		if err != nil {
 			return nil, err
 		}
@@ -239,12 +240,12 @@ func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
 	defer logger.Debug("_getTransactionByTransId end.")
 
-	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, REGION, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, REGION, PAYMODE, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
 	logger.Debug("%s---%s", sqlstr, transid)
 	row := db.QueryRow(sqlstr, transid)
 	t := &Transaction{}
 	err := row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
-		&t.Region, &t.CreateTime, &t.Status, &t.StatusTime)
+		&t.Region, &t.Paymode, &t.CreateTime, &t.Status, &t.StatusTime)
 	if err != nil {
 		return nil, err
 	}

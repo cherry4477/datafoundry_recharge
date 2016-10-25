@@ -34,6 +34,8 @@ const (
 	ErrorCodeModifyApp         = 1310
 	ErrorCodeGetApp            = 1311
 	ErrorCodeQueryTransactions = 1312
+	ErrorCodeAmountsInvalid    = 1313
+	ErrorCodeGetAiPayMsg       = 1314
 
 	NumErrors = 1500 // about 12k memroy wasted
 )
@@ -55,6 +57,8 @@ func init() {
 	initError(ErrorCodeModifyApp, "failed to modify app")
 	initError(ErrorCodeGetApp, "failed to retrieve app")
 	initError(ErrorCodeQueryTransactions, "failed to query transactions")
+	initError(ErrorCodeAmountsInvalid, "input amount is invalid")
+	initError(ErrorCodeGetAiPayMsg, "failed to get aipay message")
 
 	ErrorNone = GetError(ErrorCodeNone)
 	ErrorUnkown = GetError(ErrorCodeUnkown)

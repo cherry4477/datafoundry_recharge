@@ -28,7 +28,7 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	}
 
 	ns := r.Form.Get("namespace")
-	if user == AdminUser {
+	if true == checkAdminUser(user) {
 
 	} else {
 		if ns == "" {

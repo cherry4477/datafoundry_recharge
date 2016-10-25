@@ -19,10 +19,10 @@ const (
 	TransTypeDEDUCTION = "deduction"
 	TransTypeRECHARGE  = "recharge"
 
-	AdminUser = "admin"
-
 	letterBytes = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
+
+var AdminUsers = []string{"admin", "datafoundry"}
 
 type Aipayrecharge struct {
 	Order_id  string  `json:"order_id"`
@@ -190,8 +190,17 @@ func Testsql(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	models.UpdateRechargeAndBalance(db, "LA0IIC0VVX", "O")
 }
 
+func checkAdminUser(user string) bool {
+	for _, v := range AdminUsers {
+		if user == v {
+			return true
+		}
+	}
+	return false
+}
+
 func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transaction, db *sql.DB, user string) {
-	if user != AdminUser {
+	if false == checkAdminUser(user) {
 		logger.Warn("Only admin user can deduction! user:%v", user)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, "Only admin user can deduction!"), nil)
 		return
@@ -224,14 +233,14 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transact
 func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
 	if (recharge.Amount*100 - float64(int(recharge.Amount*100))) > 0 {
 		logger.Error("Recharge amount has more than two decimals. %v", recharge.Amount)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge,
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAmountsInvalid,
 			"recharge amount has more than two decimals"), nil)
 		return
 	}
 	xmlMsg, err := GetAipayRechargeMsg(recharge)
 	if err != nil {
 		logger.Error("GetAipayRechargeMsg  err: %v", err)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeGetAiPayMsg, err.Error()), nil)
 		return
 	}
 
@@ -243,6 +252,7 @@ func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transa
 
 	//record recharge in database
 	recharge.Status = "I"
+	recharge.Paymode = "hongpay"
 	err = models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
@@ -335,7 +345,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	}
 
 	ns := r.Form.Get("namespace")
-	if user == AdminUser {
+	if true == checkAdminUser(user) {
 
 	} else {
 		if ns == "" {
@@ -385,7 +395,7 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
 	}
-	if user != AdminUser {
+	if false == checkAdminUser(user) {
 		api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)
 		return
 	}
@@ -405,7 +415,7 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 		return
 	}
 
-	recharge.Type = "coupon"
+	recharge.Type = "recharge"
 	recharge.TransactionId = genUUID()
 	logger.Debug("coupon recharge: %v", recharge.TransactionId)
 
@@ -416,6 +426,7 @@ func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.
 
 	//record recharge in database
 	recharge.Status = "O"
+	recharge.Paymode = "coupon"
 	err := models.RecordRecharge(db, recharge)
 	if err != nil {
 		logger.Error("Record recharge err: %v", err)
