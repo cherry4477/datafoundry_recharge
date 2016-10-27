@@ -12,6 +12,8 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -230,11 +232,14 @@ func _doDeduction(w http.ResponseWriter, r *http.Request, trans *models.Transact
 
 }
 
-func checkAmount(amount float64) uint {
-	if (amount*100 - float64(int(amount*100))) > 0 {
-		logger.Error("%v, %v", api.ErrorCodeAmountsInvalid, amount)
+func CheckAmount(amount float64) uint {
+
+	amount = float64(int64(amount*100)) * 0.01
+	/*if (amount*100 - float64(int64(amount*100))) > 0 {
+		logger.Error("%v, %v, %v, %v", api.ErrorCodeAmountsInvalid, amount, amount*100, float64(int(amount*100)))
 		return api.ErrorCodeAmountsInvalid
-	}
+	}*/
+	logger.Info("amount:%v", amount)
 	if amount < 0 {
 		logger.Error("%v, %v", api.ErrorCodeAmountsNegative, amount)
 		return api.ErrorCodeAmountsNegative
@@ -247,8 +252,30 @@ func checkAmount(amount float64) uint {
 	return api.ErrorCodeNone
 }
 
+func EnsureLeTowDecimal(amount float64) bool {
+	var bret = false
+	var sinput = strconv.FormatFloat(amount, 'f', -1, 64)
+
+	count := strings.Count(sinput, ".")
+	if count == 0 {
+		bret = true
+	} else if count == 1 {
+		i := strings.LastIndex(sinput, ".")
+		logger.Info("i:%v", i)
+		logger.Info("len:%v", len(sinput))
+		if i+3 < len(sinput) {
+			bret = false
+		} else {
+			bret = true
+		}
+	} else if count > 1 {
+
+	}
+	return bret
+}
+
 func _doRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
-	if errcode := checkAmount(recharge.Amount); errcode > 0 {
+	if errcode := CheckAmount(recharge.Amount); errcode > 0 {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError(errcode), nil)
 		return
 	}
@@ -440,7 +467,7 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 
 func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.Transaction, db *sql.DB) {
 
-	if errcode := checkAmount(recharge.Amount); errcode > 0 {
+	if errcode := CheckAmount(recharge.Amount); errcode > 0 {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError(errcode), nil)
 		return
 	}
