@@ -15,7 +15,7 @@ type Balance struct {
 	Status    string  `json:"state,omitempty"`
 }
 
-func GetBalanceByNamespace(db *sql.DB, ns string) (*Balance, error) {
+func GetBalanceByNamespace(db DbOrTx, ns string) (*Balance, error) {
 	balance := new(Balance)
 	var err error
 
@@ -43,7 +43,7 @@ func GetBalanceByNamespace(db *sql.DB, ns string) (*Balance, error) {
 
 }
 
-func CreateNamespace(db *sql.DB, ns string) (err error) {
+func CreateNamespace(db DbOrTx, ns string) (err error) {
 
 	if _, err = db.Exec(`INSERT INTO DF_balance
 			(namespace) VALUES(?)`, ns); err != nil {
@@ -53,7 +53,7 @@ func CreateNamespace(db *sql.DB, ns string) (err error) {
 	return err
 }
 
-func UpdateBalance(db *sql.DB, balance *Balance) (*Balance, error) {
+func UpdateBalance(db DbOrTx, balance *Balance) (*Balance, error) {
 
 	sqlstr := fmt.Sprintf(`update DF_balance SET balance = %v where namespace = '%v'`, balance.Balance, balance.Namespace)
 
@@ -75,26 +75,49 @@ func RechargeBalance(db *sql.DB, ns string, amount float64) (*Balance, error) {
 	if ns == "" {
 		return nil, errors.New("Namespace is nil")
 	}
-	balance, err := GetBalanceByNamespace(db, ns)
+
+	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
+	balance, err := GetBalanceByNamespace(tx, ns)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
 	balance.Balance += amount
-	return UpdateBalance(db, balance)
-
+	balance, err = UpdateBalance(tx, balance)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+	return balance, err
 }
 
 func DeductionBalance(db *sql.DB, ns string, amount float64) (*Balance, error) {
 
-	balance, err := GetBalanceByNamespace(db, ns)
+	tx, err := db.Begin()
 	if err != nil {
+		return nil, err
+	}
+	balance, err := GetBalanceByNamespace(tx, ns)
+	if err != nil {
+		tx.Rollback()
 		return nil, err
 	}
 	balance.Balance -= amount
 	if balance.Balance < 0 {
+		tx.Rollback()
 		return balance, errors.New("need recharge first.")
 	}
-	return UpdateBalance(db, balance)
+	balance, err = UpdateBalance(tx, balance)
+	if err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+	tx.Commit()
+	return balance, err
 }
 
 func checkSqlErr(err error) {
