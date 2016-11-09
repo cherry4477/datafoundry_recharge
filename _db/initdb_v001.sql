@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS DF_TRANSACTION
     CREATE_TIME       DATETIME,
     STATUS            VARCHAR(2) NOT NULL,
     STATUS_TIME       DATETIME,
+    BALANCE           decimal(16,3) NOT NULL DEFAULT 0.000,
     PRIMARY KEY (ID)
 )  DEFAULT CHARSET=UTF8;
 
@@ -22,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `DF_balance` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   `balance` decimal(16,3) NOT NULL DEFAULT 0.000,
-  `state` varchar(255) COLLATE utf8_bin NOT NULL,
+  `state` varchar(2) COLLATE utf8_bin NOT NULL DEFAULT 'A',
   PRIMARY KEY (`id`),
   UNIQUE KEY `namespace_unique` (`namespace`),
   KEY `df_balance_created_at_index` (`created_at`),

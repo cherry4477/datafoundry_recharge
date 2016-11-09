@@ -47,7 +47,7 @@ func CreateNamespace(db DbOrTx, ns string) (err error) {
 
 	if _, err = db.Exec(`INSERT INTO DF_balance
 			(namespace) VALUES(?)`, ns); err != nil {
-		logger.Error("INSERT INTO DF_balance error:", err.Error())
+		logger.Error("INSERT INTO DF_balance error: %v", err.Error())
 
 	}
 	return err

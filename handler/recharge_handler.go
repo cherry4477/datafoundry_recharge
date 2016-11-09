@@ -95,6 +95,15 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	if recharge.Namespace == "" {
 		recharge.Namespace = user
 	}
+
+	balance,err := models.GetBalanceByNamespace(db,recharge.Namespace)
+	if err != nil {
+		logger.Error("GetBalance:%v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQUERYBALANCE, err.Error()), nil)
+		return
+	}
+	recharge.Balance = balance.Balance
+
 	recharge.TransactionId = genUUID()
 	logger.Debug("recharge: %v", recharge.TransactionId)
 
@@ -457,7 +466,6 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeParseJsonFailed, err.Error()), nil)
 		return
 	}
-
 	recharge.Type = "recharge"
 	recharge.TransactionId = genUUID()
 	logger.Debug("coupon recharge: %v", recharge.TransactionId)
@@ -475,19 +483,20 @@ func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.
 	//record recharge in database
 	recharge.Status = "O"
 	recharge.Paymode = "coupon"
-	err := models.RecordRecharge(db, recharge)
-	if err != nil {
-		logger.Error("Record recharge err: %v", err)
-		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
-		return
-	}
-
 	balance, err := models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
 	if err != nil {
 		logger.Error("RechargeBalance:%v", err)
 		return
 	}
 	logger.Debug("_doCouponRecharge---RechargeBalance:%v", balance.Balance)
+
+	recharge.Balance = balance.Balance
+
+	if err := models.RecordRecharge(db, recharge); err != nil {
+		logger.Error("Record recharge err: %v", err)
+		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeRecordRecharge, err.Error()), nil)
+		return
+	}
 
 	api.JsonResult(w, http.StatusOK, nil, balance)
 }
