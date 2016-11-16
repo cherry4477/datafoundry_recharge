@@ -69,7 +69,9 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
 	token := r.Header.Get("Authorization")
 
-	user, err := getDFUserame(token)
+	region := r.Form.Get("region")
+
+	user, err := getDFUserame(token,region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
@@ -390,7 +392,9 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 
 	token := r.Header.Get("Authorization")
 
-	user, err := getDFUserame(token)
+	region := r.Form.Get("region")
+
+	user, err := getDFUserame(token,region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
@@ -425,7 +429,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	sortOrder := models.ValidateSortOrder(r.Form.Get("sortorder"), models.SortOrderDesc)
 	transType := models.ValidateTransType(r.Form.Get("type"))
 	status := models.ValidateStatus(r.Form.Get("status"))
-	region := r.Form.Get("region")
+
 
 	count, transactions, err := models.QueryTransactionList(db, transType, ns, status, region, orderBy, sortOrder, offset, size)
 	if err != nil {
@@ -442,7 +446,9 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 
 	token := r.Header.Get("Authorization")
 
-	user, err := getDFUserame(token)
+	region := r.Form.Get("region")
+
+	user, err := getDFUserame(token,region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return

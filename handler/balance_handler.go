@@ -21,7 +21,9 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	token := r.Header.Get("Authorization")
 
-	user, err := getDFUserame(token)
+	region := r.Form.Get("region")
+
+	user, err := getDFUserame(token,region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return

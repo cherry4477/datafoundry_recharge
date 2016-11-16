@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
+	"os"
 )
 
 type ObjectMeta struct {
@@ -25,10 +26,33 @@ type User struct {
 	Groups []string `json:"groups"`
 }
 
-const DataFoundryHost = "https://dev.dataos.io:8443"
+const (
 
-func authDF(token string) (*User, error) {
-	url := fmt.Sprintf("%s/oapi/v1/users/~", DataFoundryHost)
+
+	RegionOne = "cn-north-1"
+	RegionTwo = "cn-north-2"
+)
+
+var (
+	DataFoundryHost = os.Getenv("DataFoundryAreaOneHost")
+	DataFoundryHost2 = os.Getenv("DataFoundryAreaTwoHost")
+)
+
+func authDF(token ,region string) (*User, error) {
+	var url string
+	if(region==""||region==RegionOne){
+		if DataFoundryHost == ""{
+			DataFoundryHost="https://dev.dataos.io:8443"
+		}
+		url = fmt.Sprintf("%s/oapi/v1/users/~", DataFoundryHost)
+	}else if region==RegionTwo {
+		if DataFoundryHost2 == ""{
+			DataFoundryHost2 = "https://lab.asiainfodata.com:8443"
+		}
+		url = fmt.Sprintf("%s/oapi/v1/users/~", DataFoundryHost2)
+	}else {
+		return nil,fmt.Errorf("Invalid region request :%s", region)
+	}
 
 	response, data, err := common.RemoteCall("GET", url, token, "")
 	if err != nil {
@@ -56,10 +80,10 @@ func dfUser(user *User) string {
 	return user.Name
 }
 
-func getDFUserame(token string) (string, error) {
+func getDFUserame(token ,region string) (string, error) {
 	//Logger.Info("token = ", token)
 
-	user, err := authDF(token)
+	user, err := authDF(token,region)
 	if err != nil {
 		return "", err
 	}
