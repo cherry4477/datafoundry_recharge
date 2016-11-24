@@ -13,7 +13,7 @@ import (
 )
 
 func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	logger.Info("Request url: GET %v.", r.URL)
+	logger.Info("Request url: GET %s.", r.RequestURI)
 
 	logger.Info("Begin balance handler.")
 
@@ -23,7 +23,7 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	region := r.Form.Get("region")
 
-	user, err := getDFUserame(token,region)
+	user, err := getDFUserame(token, region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
@@ -36,7 +36,7 @@ func Balance(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 		if ns == "" {
 			ns = user
 		} else {
-			err = checkNameSpacePermission(ns, token)
+			err = checkNameSpacePermission(ns, token, region)
 			if err != nil {
 				logger.Warn("%s cannot access the namespace:%s.", user, ns)
 				api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)

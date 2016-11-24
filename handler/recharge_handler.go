@@ -71,7 +71,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
 	region := r.Form.Get("region")
 
-	user, err := getDFUserame(token,region)
+	user, err := getDFUserame(token, region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
@@ -98,7 +98,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 		recharge.Namespace = user
 	}
 
-	balance,err := models.GetBalanceByNamespace(db,recharge.Namespace)
+	balance, err := models.GetBalanceByNamespace(db, recharge.Namespace)
 	if err != nil {
 		logger.Error("GetBalance:%v", err)
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQUERYBALANCE, err.Error()), nil)
@@ -394,7 +394,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 
 	region := r.Form.Get("region")
 
-	user, err := getDFUserame(token,region)
+	user, err := getDFUserame(token, region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
@@ -407,7 +407,7 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 		if ns == "" {
 			ns = user
 		} else {
-			err = checkNameSpacePermission(ns, token)
+			err = checkNameSpacePermission(ns, token, region)
 			if err != nil {
 				logger.Warn("%s cannot access the namespace:%s.", user, ns)
 				api.JsonResult(w, http.StatusInternalServerError, api.GetError(api.ErrorCodePermissionDenied), nil)
@@ -430,7 +430,6 @@ func GetRechargeList(w http.ResponseWriter, r *http.Request, params httprouter.P
 	transType := models.ValidateTransType(r.Form.Get("type"))
 	status := models.ValidateStatus(r.Form.Get("status"))
 
-
 	count, transactions, err := models.QueryTransactionList(db, transType, ns, status, region, orderBy, sortOrder, offset, size)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeQueryTransactions, err.Error()), nil)
@@ -448,7 +447,7 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 
 	region := r.Form.Get("region")
 
-	user, err := getDFUserame(token,region)
+	user, err := getDFUserame(token, region)
 	if err != nil {
 		api.JsonResult(w, http.StatusBadRequest, api.GetError2(api.ErrorCodeAuthFailed, err.Error()), nil)
 		return
