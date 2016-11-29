@@ -69,6 +69,7 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 
 	token := r.Header.Get("Authorization")
 
+	r.ParseForm()
 	region := r.Form.Get("region")
 
 	user, err := getDFUserame(token, region)
@@ -371,7 +372,7 @@ func updateBalance(db *sql.DB, recharge *models.Transaction) (*models.Balance, e
 }
 
 func setTransactionType(r *http.Request, transaction *models.Transaction) {
-	r.ParseForm()
+
 	transType := r.Form.Get("type")
 	logger.Debug("Transcation type in url is:%v", transType)
 
@@ -444,7 +445,7 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 	defer logger.Info("End do recharge handler.")
 
 	token := r.Header.Get("Authorization")
-
+	r.ParseForm()
 	region := r.Form.Get("region")
 
 	user, err := getDFUserame(token, region)
