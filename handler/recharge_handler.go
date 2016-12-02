@@ -107,6 +107,10 @@ func DoRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 	recharge.Balance = balance.Balance
 
+	if len(recharge.Region) == 0 {
+		recharge.Region = region
+	}
+
 	recharge.TransactionId = genUUID()
 	logger.Debug("recharge: %v", recharge.TransactionId)
 
@@ -473,6 +477,9 @@ func CouponRecharge(w http.ResponseWriter, r *http.Request, params httprouter.Pa
 		return
 	}
 	recharge.Type = "recharge"
+	if len(recharge.Region) == 0 {
+		recharge.Region = region
+	}
 	recharge.TransactionId = genUUID()
 	logger.Debug("coupon recharge: %v", recharge.TransactionId)
 
