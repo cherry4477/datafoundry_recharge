@@ -13,6 +13,17 @@ var (
 	logger = log.GetLogger()
 )
 
+//================================================
+
+type DbOrTx interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Prepare(query string) (*sql.Stmt, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
+//================================================
+
 func InitDB() {
 
 	for i := 0; i < 3; i++ {

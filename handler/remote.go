@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/asiainfoLDP/datafoundry_recharge/common"
+	"os"
 )
 
 type ObjectMeta struct {
@@ -25,10 +26,39 @@ type User struct {
 	Groups []string `json:"groups"`
 }
 
-const DataFoundryHost = "https://dev.dataos.io:8443"
+const (
+	RegionOne = "cn-north-1"
+	RegionTwo = "cn-north-2"
+)
 
-func authDF(token string) (*User, error) {
-	url := fmt.Sprintf("%s/oapi/v1/users/~", DataFoundryHost)
+var (
+	DataFoundryHost  = os.Getenv("DataFoundryRegionOneHost")
+	DataFoundryHost2 = os.Getenv("DataFoundryRegionTwoHost")
+)
+
+func getHost(region string) string {
+	var host string
+	if region == "" || region == RegionOne {
+		if DataFoundryHost == "" {
+			DataFoundryHost = "https://dev.dataos.io:8443"
+		}
+		host = DataFoundryHost
+	} else if region == RegionTwo {
+		if DataFoundryHost2 == "" {
+			DataFoundryHost2 = "https://lab.asiainfodata.com:8443"
+		}
+		host = DataFoundryHost2
+	} else {
+		return ""
+	}
+	return host
+}
+func authDF(token, region string) (*User, error) {
+	host := getHost(region)
+	if host == "" {
+		return nil, fmt.Errorf("Invalid region request :%s", region)
+	}
+	url := fmt.Sprintf("%s/oapi/v1/users/~", host)
 
 	response, data, err := common.RemoteCall("GET", url, token, "")
 	if err != nil {
@@ -56,18 +86,22 @@ func dfUser(user *User) string {
 	return user.Name
 }
 
-func getDFUserame(token string) (string, error) {
+func getDFUserame(token, region string) (string, error) {
 	//Logger.Info("token = ", token)
 
-	user, err := authDF(token)
+	user, err := authDF(token, region)
 	if err != nil {
 		return "", err
 	}
 	return dfUser(user), nil
 }
 
-func checkNameSpacePermission(ns, token string) error {
-	url := fmt.Sprintf("%s/oapi/v1/projects/%s", DataFoundryHost, ns)
+func checkNameSpacePermission(ns, token, region string) error {
+	host := getHost(region)
+	if host == "" {
+		return fmt.Errorf("Invalid region request :%s, namespace :%s\n", region, ns)
+	}
+	url := fmt.Sprintf("%s/oapi/v1/projects/%s", host, ns)
 
 	response, data, err := common.RemoteCall("GET", url, token, "")
 	if err != nil {

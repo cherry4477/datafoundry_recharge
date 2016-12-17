@@ -20,9 +20,12 @@ type Transaction struct {
 	Namespace     string    `json:"namespace"`
 	User          string    `json:"user,omitempty"`
 	Reason        string    `json:"reason,omitempty"`
+	Region        string    `json:"region,omitempty"`
+	Paymode       string    `json:"paymode,omitempty"`
 	CreateTime    time.Time `json:"createtime,omitempty"`
 	Status        string    `json:"status,omitempty"`
 	StatusTime    time.Time `json:"statustime,omitempty"`
+	Balance       float64   `json:"balance"`
 }
 
 func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
@@ -32,20 +35,20 @@ func RecordRecharge(db *sql.DB, rechargeInfo *Transaction) error {
 	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
 	sqlstr := fmt.Sprintf(`insert into DF_TRANSACTION (
 				TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, 
-				CREATE_TIME, STATUS, STATUS_TIME
+				REGION, PAYMODE, CREATE_TIME, STATUS, STATUS_TIME,BALANCE
 				) values (
-				?, ?, ?, ?, ?, ?,
-				'%s', ?, '%s')`,
+				?, ?, ?, ?, ?, ?, 
+				?, ?, '%s', ?, '%s',?)`,
 		nowstr, nowstr)
 
 	_, err := db.Exec(sqlstr,
-		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount,
-		rechargeInfo.Namespace, rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Status)
+		rechargeInfo.TransactionId, rechargeInfo.Type, rechargeInfo.Amount, rechargeInfo.Namespace,
+		rechargeInfo.User, rechargeInfo.Reason, rechargeInfo.Region, rechargeInfo.Paymode, rechargeInfo.Status,rechargeInfo.Balance)
 
 	return err
 }
 
-func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sortOrder string,
+func QueryTransactionList(db *sql.DB, transType, namespace, status, region, orderBy, sortOrder string,
 	offset int64, limit int) (int64, []*Transaction, error) {
 
 	logger.Debug("QueryTransactions begin")
@@ -77,6 +80,15 @@ func QueryTransactionList(db *sql.DB, transType, namespace, status, orderBy, sor
 			sqlwhere = sqlwhere + " and namespace=?"
 		}
 		sqlParams = append(sqlParams, namespace)
+	}
+
+	if region != "" {
+		if sqlwhere == "" {
+			sqlwhere = "region=?"
+		} else {
+			sqlwhere = sqlwhere + " and region=?"
+		}
+		sqlParams = append(sqlParams, region)
 	}
 
 	sqlorder := ""
@@ -170,7 +182,7 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 		sqlwhereall = fmt.Sprintf("where %s", sqlwhere)
 	}
 	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, 
-		AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS,  STATUS_TIME
+		AMOUNT, NAMESPACE, USER, REASON, REGION, PAYMODE, CREATE_TIME, STATUS,  STATUS_TIME
 		FROM DF_TRANSACTION 
 		%s 
 		%s 
@@ -190,8 +202,8 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 	trans := make([]*Transaction, 0, 32)
 	for rows.Next() {
 		tran := &Transaction{}
-		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace,
-			&tran.User, &tran.Reason, &tran.CreateTime, &tran.Status, &tran.StatusTime)
+		err := rows.Scan(&tran.TransactionId, &tran.Type, &tran.Amount, &tran.Namespace, &tran.User,
+			&tran.Reason, &tran.Region, &tran.Paymode, &tran.CreateTime, &tran.Status, &tran.StatusTime)
 		if err != nil {
 			return nil, err
 		}
@@ -205,36 +217,52 @@ func queryTransactions(db *sql.DB, sqlwhere, sqlorder string,
 }
 
 func UpdateRechargeAndBalance(db *sql.DB, transid, status string) (err error) {
-	err = UpdateTransaction(db, transid, status)
-	if err != nil {
-		logger.Error("UpdateTransaction:%v", err)
-		return
+
+	if status == "O" {
+
+		trans, err := _getTransactionByTransId(db, transid)
+		if err != nil {
+			logger.Error("_getTransactionById:%v",err)
+			return err
+		}
+
+		balance, err := RechargeBalance(db, trans.Namespace, trans.Amount)
+		if err != nil {
+			logger.Error("RechargeBalance:%v", err)
+			return err
+		}
+
+		err = UpdateTransactionBalance(db,transid,status,balance.Balance)
+		if err != nil {
+			logger.Error("UpdateTransaction:%v", err)
+			return err
+		}
+
+		logger.Debug("UpdateRechargeAndBalance---RechargeBalance:%v", balance.Balance)
+
+	}else {
+		err = UpdateTransaction(db, transid, status)
+		if err != nil {
+			logger.Error("UpdateTransaction:%v", err)
+			return err
+		}
+
+		logger.Debug("UpdateRechargeAndBalance---RechargeBalance")
+
 	}
 
-	trans, err := _getTransactionByTransId(db, transid)
-	if err != nil {
-		logger.Error("_getTransactionById:%v")
-		return
-	}
-
-	balance, err := RechargeBalance(db, trans.Namespace, trans.Amount)
-	if err != nil {
-		logger.Error("RechargeBalance:%v", err)
-		return err
-	}
-	logger.Debug("UpdateRechargeAndBalance---RechargeBalance:%v", balance.Balance)
 	return err
 }
 
 func _getTransactionByTransId(db *sql.DB, transid string) (*Transaction, error) {
 	defer logger.Debug("_getTransactionByTransId end.")
 
-	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
+	sqlstr := fmt.Sprintf(`SELECT TRANSACTION_ID, TYPE, AMOUNT, NAMESPACE, USER, REASON, REGION, PAYMODE, CREATE_TIME, STATUS, STATUS_TIME FROM DF_TRANSACTION WHERE TRANSACTION_ID=?`)
 	logger.Debug("%s---%s", sqlstr, transid)
 	row := db.QueryRow(sqlstr, transid)
 	t := &Transaction{}
 	err := row.Scan(&t.TransactionId, &t.Type, &t.Amount, &t.Namespace, &t.User, &t.Reason,
-		&t.CreateTime, &t.Status, &t.StatusTime)
+		&t.Region, &t.Paymode, &t.CreateTime, &t.Status, &t.StatusTime)
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +277,17 @@ func UpdateTransaction(db *sql.DB, transid, status string) error {
 	sqlstr := fmt.Sprintf(`UPDATE DF_TRANSACTION SET STATUS=? , STATUS_TIME=? WHERE TRANSACTION_ID=?`)
 
 	logger.Debug("%s---%s---%s---%s", sqlstr, status, nowstr, transid)
+	_, err := db.Exec(sqlstr, status, nowstr, transid)
+	return err
+}
+
+func UpdateTransactionBalance(db *sql.DB, transid, status string, balance float64) error {
+	defer logger.Debug("UpdateTransaction end %s, %s", transid, status)
+
+	nowstr := time.Now().Format("2006-01-02 15:04:05.999999")
+	sqlstr := fmt.Sprintf(`UPDATE DF_TRANSACTION SET STATUS=? , STATUS_TIME=? ,BALANCE = ? WHERE TRANSACTION_ID=?`)
+
+	logger.Debug("%s---%s---%s---%s", sqlstr, status, nowstr, transid, balance)
 	_, err := db.Exec(sqlstr, status, nowstr, transid)
 	return err
 }
