@@ -2,4 +2,5 @@ startlocal.sh
 datafoundry_recharge
 start.sh
 .gitignore
-.idea
+.idea/
+
