@@ -497,7 +497,9 @@ func _doCouponRecharge(w http.ResponseWriter, r *http.Request, recharge *models.
 
 	//record recharge in database
 	recharge.Status = "O"
-	recharge.Paymode = "coupon"
+	if len(recharge.Paymode) == 0 {
+		recharge.Paymode = "coupon"
+	}
 	balance, err := models.RechargeBalance(db, recharge.Namespace, recharge.Amount)
 	if err != nil {
 		logger.Error("RechargeBalance:%v", err)
@@ -524,7 +526,7 @@ func genUUID() string {
 	return string(b)
 }
 
-func initAdminUser()  {
+func initAdminUser() {
 	admins := os.Getenv("ADMINUSERS")
 	if admins == "" {
 		logger.Warn("Not set admin users.")
