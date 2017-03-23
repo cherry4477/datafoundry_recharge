@@ -94,6 +94,9 @@ func (listener *ApiRequestListener) OnMessage(topic string, partition int32, off
 
 	request.RequestURI = "" // must do this. otherwise error
 	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
 		Timeout: time.Duration(5) * time.Second,
 	}
 	response, err := client.Do(request)
