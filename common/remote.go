@@ -40,6 +40,9 @@ func RemoteCallWithBody(method, url string, token, user string, body []byte, con
 		request.Header.Set("User", user)
 	}
 	client := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
 		Timeout: time.Duration(GeneralRemoteCallTimeout) * time.Second,
 	}
 	response, err := client.Do(request)
