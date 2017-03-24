@@ -68,6 +68,10 @@ func newApiRequestListener(mq MessageQueue, localServerPort int, consumeTopic st
 	}
 }
 
+var httpTransport = &http.Transport{
+	DisableKeepAlives: true,
+}
+
 func (listener *ApiRequestListener) OnMessage(topic string, partition int32, offset int64, key, value []byte) bool {
 	//log.DefaultlLogger().Debugf("(%d) Message consuming key: %s, value %s", offset, string(key), string(value))
 	if len(key) == 0 && len(value) == 0 {
@@ -94,9 +98,7 @@ func (listener *ApiRequestListener) OnMessage(topic string, partition int32, off
 
 	request.RequestURI = "" // must do this. otherwise error
 	client := &http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-		},
+		Transport: httpTransport,
 		Timeout: time.Duration(5) * time.Second,
 	}
 	response, err := client.Do(request)
