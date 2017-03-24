@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `DF_BALANCE` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `namespace` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT 0,
+  `updated_at` timestamp,
   `balance` decimal(16,3) NOT NULL DEFAULT 0.000,
   `state` varchar(2) COLLATE utf8_bin NOT NULL DEFAULT 'A',
   PRIMARY KEY (`id`),
