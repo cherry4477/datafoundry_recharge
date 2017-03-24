@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"github.com/asiainfoLDP/datahub_commons/log"
 	"io/ioutil"
@@ -42,6 +43,7 @@ func RemoteCallWithBody(method, url string, token, user string, body []byte, con
 	client := &http.Client{
 		Transport: &http.Transport{
 			DisableKeepAlives: true,
+			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 		},
 		Timeout: time.Duration(GeneralRemoteCallTimeout) * time.Second,
 	}
